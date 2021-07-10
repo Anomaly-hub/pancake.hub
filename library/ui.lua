@@ -1,2324 +1,1676 @@
--- made by coolmatt72#6707 (coolmatt72) on v3rm aswell as walter !!!#4155
-local cc = game.Workspace.CurrentCamera
-local udim2 = {}
-local instance = {}
-local library = {}
-local main = {
-	tabbuttonx = 0
+local library = {flags = {}, windows = {}, open = true}
+
+--Services
+local runService = game:GetService"RunService"
+local tweenService = game:GetService"TweenService"
+local textService = game:GetService"TextService"
+local inputService = game:GetService"UserInputService"
+
+--Locals
+local dragging, dragInput, dragStart, startPos, dragObject
+
+local blacklistedKeys = { --add or remove keys if you find the need to
+	Enum.KeyCode.Unknown,Enum.KeyCode.W,Enum.KeyCode.A,Enum.KeyCode.S,Enum.KeyCode.D,Enum.KeyCode.Slash,Enum.KeyCode.Tab,Enum.KeyCode.Backspace,Enum.KeyCode.Escape
 }
-local tabs = {}
-local sections = {}
-local buttons = {}
-local toggles = {}
-local sliders = {}
-local textboxs = {}
-local keybinds = {}
-local dropdowns = {}
-local colorpickers = {}
---
-local currentccx = cc.ViewportSize.x
-local currentccy = cc.ViewportSize.y
---
-local mousedisable = false
-local sliderhold = false
-local holdingslider = nil
-local textboxin = false
-local currenttextbox = nil
-local keybindin = false
-local currentkeybind = nil
-local colorpickerenabled = false
-local currentcolorpicker = nil
-local currentcpcolor = Color3.fromRGB(255,255,255)
-local currenttransparency = 0
-local currentcpcolortable = {1,1,1}
-local cx = 0
-local cy = 0
-local cyy = 0
-local ty = 0
-local colorhold = false
-local huehold = false
-local transphold = false
-local ddenabled = false
-local ddcontent = nil
-local dragging = false
-local dragX,dragY = 0,0
-local font = 3
---
-local cursor
-local colorpicker
-local cursorenabled = false
-local images = {}
-local imagecache = {}
-local uis = game:GetService('UserInputService')
-local rs = game:GetService("RunService")
-local plr = game.Players.LocalPlayer
-local controls = require(plr.PlayerScripts.PlayerModule):GetControls()
-local zoom 
-local maxzoom = plr.CameraMaxZoomDistance
-local minzoom = plr.CameraMinZoomDistance
---
-images.Cursor = 'https://i.imgur.com/e2RzMxU.png'
---
-library.imageset = function(drawing, link)
-	local Data = game:HttpGet(link) or link
-	pcall(function()drawing['Data' or 'Uri'] = imagecache[link] or Data end)
-	imagecache[link] = Data
-end
---
-local allowedcharacters = {
-	"A",
-	"B",
-	"C",
-	"D",
-	"E",
-	"F",
-	"G",
-	"H",
-	"I",
-	"J",
-	"K",
-	"L",
-	"M",
-	"N",
-	"O",
-	"P",
-	"Q",
-	"R",
-	"S",
-	"T",
-	"U",
-	"V",
-	"W",
-	"X",
-	"Y",
-	"Z",
-	["One"] = "1",
-	["Two"] = "2",
-	["Three"] = "3",
-	["Four"] = "4",
-	["Five"] = "5",
-	["Six"] = "6",
-	["Seven"] = "7",
-	["Eight"] = "8",
-	["Nine"] = "9",
-	["Zero"] = "0",
-	["Space"] = " "
+local whitelistedMouseinputs = { --add or remove mouse inputs if you find the need to
+	Enum.UserInputType.MouseButton1,Enum.UserInputType.MouseButton2,Enum.UserInputType.MouseButton3
 }
-local keybindallowed = {
-	"A",
-	"B",
-	"C",
-	"D",
-	"E",
-	"F",
-	"G",
-	"H",
-	"I",
-	"J",
-	"K",
-	"L",
-	"M",
-	"N",
-	"O",
-	"P",
-	"Q",
-	"R",
-	"S",
-	"T",
-	"U",
-	"V",
-	"W",
-	"X",
-	"Y",
-	"Z",
-	["One"] = "1",
-	["Two"] = "2",
-	["Three"] = "3",
-	["Four"] = "4",
-	["Five"] = "5",
-	["Six"] = "6",
-	["Seven"] = "7",
-	["Eight"] = "8",
-	["Nine"] = "9",
-	["Zero"] = "0",
-	["Mouse1"] = "M1",
-	["Mouse2"] = "M2",
-	["Mouse3"] = "M3"
-}
---
-udim2.snew = function(xscale,xoffset,yscale,yoffset,instance)
-	local x
-	local y
-	local vx,vy = cc.ViewportSize.x,cc.ViewportSize.y
-	if instance then
-		x = xscale*instance.Size.x+xoffset
-		y = yscale*instance.Size.y+yoffset
-	else
-		x = xscale*vx+xoffset
-		y = yscale*vy+yoffset
+
+--Functions
+local function round(num, bracket)
+	bracket = bracket or 1
+	local a = math.floor(num/bracket + (math.sign(num) * 0.5)) * bracket
+	if a < 0 then
+		a = a + bracket
 	end
-	return Vector2.new(x,y)
+	return a
 end
---
-udim2.pnew = function(xscale,xoffset,yscale,yoffset,instance)
-	local x
-	local y
-	local vx,vy = cc.ViewportSize.x,cc.ViewportSize.y
-	if instance then
-		x = instance.Position.x+xscale*instance.Size.x+xoffset
-		y = instance.Position.y+yscale*instance.Size.y+yoffset
-	else
-		x = xscale*vx+xoffset
-		y = yscale*vy+yoffset
+
+local function keyCheck(x,x1)
+	for _,v in next, x1 do
+		if v == x then
+			return true
+		end
 	end
-	return Vector2.new(x,y)
 end
---
-instance.new = function(type)
-	local instance = nil
-	if type == "Frame" or type == "frame" then
-		local frame = Drawing.new("Square")
-		frame.Visible = true
-		frame.Filled = true
-		frame.Thickness = 0
-		frame.Color = Color3.fromRGB(255,255,255)
-		frame.Size = Vector2.new(100,100)
-		frame.Position = Vector2.new(0,0)
-		instance = frame
-	elseif type == "TextLabel" or "textlabel" then
-		local text = Drawing.new("Text")
-		text.Font = font
-		text.Visible = true
-		text.Outline = true
-		text.Center = false
-		text.Color = Color3.fromRGB(255,255,255)
-		instance = text
-	elseif type == "Image" or "image" then
-		local image = Drawing.new("Image")
-		image.Size = Vector2.new(12,19)
-		image.Position = Vector2.new(0,0)
-		image.Visible = true
-		instance = image
+
+local function update(input)
+	local delta = input.Position - dragStart
+	local yPos = (startPos.Y.Offset + delta.Y) < -36 and -36 or startPos.Y.Offset + delta.Y
+	dragObject:TweenPosition(UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, yPos), "Out", "Quint", 0.1, true)
+end
+
+--From: https://devforum.roblox.com/t/how-to-create-a-simple-rainbow-effect-using-tweenService/221849/2
+local chromaColor
+local rainbowTime = 5
+spawn(function()
+	while wait() do
+		chromaColor = Color3.fromHSV(tick() % rainbowTime / rainbowTime, 1, 1)
 	end
-	return instance
+end)
+
+function library:Create(class, properties)
+	properties = typeof(properties) == "table" and properties or {}
+	local inst = Instance.new(class)
+	for property, value in next, properties do
+		inst[property] = value
+	end
+	return inst
 end
---//
-local imagecache = {}
-library.setimage = function(Drawing, Url)
-	spawn(function()
-		local Data = game:HttpGet(Url) or Url;
-		Drawing['Data'] = imagecache[Url] or Data;
-		imagecache[Url] = Data;
+
+local function createOptionHolder(holderTitle, parent, parentTable, subHolder)
+	local size = subHolder and 34 or 40
+	parentTable.main = library:Create("ImageButton", {
+		LayoutOrder = subHolder and parentTable.position or 0,
+		Position = UDim2.new(0, 20 + (250 * (parentTable.position or 0)), 0, 20),
+		Size = UDim2.new(0, 230, 0, size),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = Color3.fromRGB(20, 20, 20),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.04,
+		ClipsDescendants = true,
+		Parent = parent
+	})
+	
+	local round
+	if not subHolder then
+		round = library:Create("ImageLabel", {
+			Size = UDim2.new(1, 0, 0, size),
+			BackgroundTransparency = 1,
+			Image = "rbxassetid://3570695787",
+			ImageColor3 = parentTable.open and (subHolder and Color3.fromRGB(16, 16, 16) or Color3.fromRGB(10, 10, 10)) or (subHolder and Color3.fromRGB(10, 10, 10) or Color3.fromRGB(6, 6, 6)),
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(100, 100, 100, 100),
+			SliceScale = 0.04,
+			Parent = parentTable.main
+		})
+	end
+	
+	local title = library:Create("TextLabel", {
+		Size = UDim2.new(1, 0, 0, size),
+		BackgroundTransparency = subHolder and 0 or 1,
+		BackgroundColor3 = Color3.fromRGB(10, 10, 10),
+		BorderSizePixel = 0,
+		Text = holderTitle,
+		TextSize = subHolder and 16 or 17,
+		Font = Enum.Font.GothamBold,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		Parent = parentTable.main
+	})
+	
+	local closeHolder = library:Create("Frame", {
+		Position = UDim2.new(1, 0, 0, 0),
+		Size = UDim2.new(-1, 0, 1, 0),
+		SizeConstraint = Enum.SizeConstraint.RelativeYY,
+		BackgroundTransparency = 1,
+		Parent = title
+	})
+	
+	local close = library:Create("ImageLabel", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, 0),
+		Size = UDim2.new(1, -size - 10, 1, -size - 10),
+		Rotation = parentTable.open and 90 or 180,
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://4918373417",
+		ImageColor3 = parentTable.open and Color3.fromRGB(50, 50, 50) or Color3.fromRGB(30, 30, 30),
+		ScaleType = Enum.ScaleType.Fit,
+		Parent = closeHolder
+	})
+	
+	parentTable.content = library:Create("Frame", {
+		Position = UDim2.new(0, 0, 0, size),
+		Size = UDim2.new(1, 0, 1, -size),
+		BackgroundTransparency = 1,
+		Parent = parentTable.main
+	})
+	
+	local layout = library:Create("UIListLayout", {
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = parentTable.content
+	})
+	
+	layout.Changed:connect(function()
+		parentTable.content.Size = UDim2.new(1, 0, 0, layout.AbsoluteContentSize.Y)
+		parentTable.main.Size = #parentTable.options > 0 and parentTable.open and UDim2.new(0, 230, 0, layout.AbsoluteContentSize.Y + size) or UDim2.new(0, 230, 0, size)
+	end)
+	
+	if not subHolder then
+		library:Create("UIPadding", {
+			Parent = parentTable.content
+		})
+		
+		title.InputBegan:connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				dragObject = parentTable.main
+				dragging = true
+				dragStart = input.Position
+				startPos = dragObject.Position
+			end
+		end)
+		title.InputChanged:connect(function(input)
+			if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+				dragInput = input
+			end
+		end)
+			title.InputEnded:connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				dragging = false
+			end
+		end)
+	end
+	
+	closeHolder.InputBegan:connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			parentTable.open = not parentTable.open
+			tweenService:Create(close, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Rotation = parentTable.open and 90 or 180, ImageColor3 = parentTable.open and Color3.fromRGB(50, 50, 50) or Color3.fromRGB(30, 30, 30)}):Play()
+			if subHolder then
+				tweenService:Create(title, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = parentTable.open and Color3.fromRGB(16, 16, 16) or Color3.fromRGB(10, 10, 10)}):Play()
+			else
+				tweenService:Create(round, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = parentTable.open and Color3.fromRGB(10, 10, 10) or Color3.fromRGB(6, 6, 6)}):Play()
+			end
+			parentTable.main:TweenSize(#parentTable.options > 0 and parentTable.open and UDim2.new(0, 230, 0, layout.AbsoluteContentSize.Y + size) or UDim2.new(0, 230, 0, size), "Out", "Quad", 0.2, true)
+		end
+	end)
+
+	function parentTable:SetTitle(newTitle)
+		title.Text = tostring(newTitle)
+	end
+	
+	return parentTable
+end
+	
+local function createLabel(option, parent)
+	local main = library:Create("TextLabel", {
+		LayoutOrder = option.position,
+		Size = UDim2.new(1, 0, 0, 26),
+		BackgroundTransparency = 1,
+		Text = " " .. option.text,
+		TextSize = 17,
+		Font = Enum.Font.Gotham,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = parent.content
+	})
+	
+	setmetatable(option, {__newindex = function(t, i, v)
+		if i == "Text" then
+			main.Text = " " .. tostring(v)
+		end
+	end})
+end
+
+function createToggle(option, parent)
+	local main = library:Create("TextLabel", {
+		LayoutOrder = option.position,
+		Size = UDim2.new(1, 0, 0, 31),
+		BackgroundTransparency = 1,
+		Text = " " .. option.text,
+		TextSize = 17,
+		Font = Enum.Font.Gotham,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = parent.content
+	})
+	
+	local tickboxOutline = library:Create("ImageLabel", {
+		Position = UDim2.new(1, -6, 0, 4),
+		Size = UDim2.new(-1, 10, 1, -10),
+		SizeConstraint = Enum.SizeConstraint.RelativeYY,
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = option.state and Color3.fromRGB(255, 65, 65) or Color3.fromRGB(100, 100, 100),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = main
+	})
+	
+	local tickboxInner = library:Create("ImageLabel", {
+		Position = UDim2.new(0, 2, 0, 2),
+		Size = UDim2.new(1, -4, 1, -4),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = option.state and Color3.fromRGB(255, 65, 65) or Color3.fromRGB(20, 20, 20),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = tickboxOutline
+	})
+	
+	local checkmarkHolder = library:Create("Frame", {
+		Position = UDim2.new(0, 4, 0, 4),
+		Size = option.state and UDim2.new(1, -8, 1, -8) or UDim2.new(0, 0, 1, -8),
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
+		Parent = tickboxOutline
+	})
+	
+	local checkmark = library:Create("ImageLabel", {
+		Size = UDim2.new(1, 0, 1, 0),
+		SizeConstraint = Enum.SizeConstraint.RelativeYY,
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://4919148038",
+		ImageColor3 = Color3.fromRGB(20, 20, 20),
+		Parent = checkmarkHolder
+	})
+	
+	local inContact
+	main.InputBegan:connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			option:SetState(not option.state)
+		end
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			inContact = true
+			if not option.state then
+				tweenService:Create(tickboxOutline, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(140, 140, 140)}):Play()
+			end
+		end
+	end)
+	
+	main.InputEnded:connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			inContact = true
+			if not option.state then
+				tweenService:Create(tickboxOutline, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(100, 100, 100)}):Play()
+			end
+		end
+	end)
+	
+	function option:SetState(state)
+		library.flags[self.flag] = state
+		self.state = state
+		checkmarkHolder:TweenSize(option.state and UDim2.new(1, -8, 1, -8) or UDim2.new(0, 0, 1, -8), "Out", "Quad", 0.2, true)
+		tweenService:Create(tickboxInner, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = state and Color3.fromRGB(255, 65, 65) or Color3.fromRGB(20, 20, 20)}):Play()
+		if state then
+			tweenService:Create(tickboxOutline, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(255, 65, 65)}):Play()
+		else
+			if inContact then
+				tweenService:Create(tickboxOutline, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(140, 140, 140)}):Play()
+			else
+				tweenService:Create(tickboxOutline, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(100, 100, 100)}):Play()
+			end
+		end
+		self.callback(state)
+	end
+
+	if option.state then
+		delay(1, function() option.callback(true) end)
+	end
+	
+	setmetatable(option, {__newindex = function(t, i, v)
+		if i == "Text" then
+			main.Text = " " .. tostring(v)
+		end
+	end})
+end
+
+function createButton(option, parent)
+	local main = library:Create("TextLabel", {
+		ZIndex = 2,
+		LayoutOrder = option.position,
+		Size = UDim2.new(1, 0, 0, 34),
+		BackgroundTransparency = 1,
+		Text = " " .. option.text,
+		TextSize = 17,
+		Font = Enum.Font.Gotham,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		Parent = parent.content
+	})
+	
+	local round = library:Create("ImageLabel", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, 0),
+		Size = UDim2.new(1, -12, 1, -10),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = Color3.fromRGB(40, 40, 40),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = main
+	})
+	
+	local inContact
+	local clicking
+	main.InputBegan:connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			library.flags[option.flag] = true
+			clicking = true
+			tweenService:Create(round, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(255, 65, 65)}):Play()
+			option.callback()
+		end
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			inContact = true
+			tweenService:Create(round, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(60, 60, 60)}):Play()
+		end
+	end)
+	
+	main.InputEnded:connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			clicking = false
+			if inContact then
+				tweenService:Create(round, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(60, 60, 60)}):Play()
+			else
+				tweenService:Create(round, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(40, 40, 40)}):Play()
+			end
+		end
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			inContact = false
+			if not clicking then
+				tweenService:Create(round, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(40, 40, 40)}):Play()
+			end
+		end
 	end)
 end
---
-library.updatecursor = function()
-	if cursor then
-		cursor:Remove()
-	end
-	cursor = instance.new("Frame")
-	cursor.Size = Vector2.new(4,4)
-	cursor.Visible = false
-end
---
-library.makecolorpicker = function()
-	local border3 = instance.new("Frame")
-	border3.Size = udim2.snew(0,145+10,0,145+10)
-	border3.Color = Color3.fromRGB(0,0,0)
-	border3.Position = udim2.pnew(0.1,-5,0.3,-5)
-	border3.Visible = false
-	--
-	local border2 = instance.new("Frame")
-	border2.Size = udim2.snew(0,145+8,0,145+8)
-	border2.Color = Color3.fromRGB(20, 20, 20)
-	border2.Position = udim2.pnew(0.1,-4,0.3,-4)
-	border2.Visible = false
-	--
-	local border1 = instance.new("Frame")
-	border1.Size = udim2.snew(0,145+2,0,145+2)
-	border1.Color = Color3.fromRGB(0,0,0)
-	border1.Position = udim2.pnew(0.1,-1,0.3,-1)
-	border1.Visible = false
-	--
-	local frame = instance.new("Frame")
-	frame.Size = udim2.snew(0,145,0,145)
-	frame.Color = Color3.fromRGB(30, 30, 30)
-	frame.Position = udim2.pnew(0.1,0,0.3,0)
-	frame.Visible = false
-	--
-	local color = instance.new("Frame")
-	color.Visible = false
-	color.Color = Color3.fromRGB(255,0,0)
-	color.Size = udim2.snew(0,120,0,120,frame)
-	color.Position = udim2.pnew(0,5,0,5,frame)
-	local colorimage = Drawing.new("Image")
-	colorimage.Visible = false
-	colorimage.Size = udim2.snew(0,120,0,120,frame)
-	colorimage.Position = udim2.pnew(0,0,0,0,color)
-	library.setimage(colorimage,"https://i.imgur.com/HqG6MM1.png")
-	--
-	local colorborder = instance.new("Frame")
-	colorborder.Visible = false
-	colorborder.Color = Color3.fromRGB(0,0,0)
-	colorborder.Filled = false
-	colorborder.Thickness = 1
-	colorborder.Size = udim2.snew(1,0,1,0,color)
-	colorborder.Position = udim2.pnew(0,0,0,0,color)
-	--
-	local cursor1 = instance.new("Frame")
-	cursor1.Visible = false
-	cursor1.Color = Color3.fromRGB(0,0,0)
-	cursor1.Size = udim2.snew(0,5,0,5,color)
-	cursor1.Position = udim2.pnew(0,-2,0,-2,color)
-	--
-	local cursor2 = instance.new("Frame")
-	cursor2.Visible = false
-	cursor2.Color = Color3.fromRGB(255,255,255)
-	cursor2.Size = udim2.snew(0,3,0,3,cursor1)
-	cursor2.Position = udim2.pnew(0,1,0,1,cursor1)
-	--
-	local hue = Drawing.new("Image")
-	hue.Visible = false
-	hue.Size = udim2.snew(0,10,0,120,frame)
-	hue.Position = udim2.pnew(1,5,0,0,color)
-	library.setimage(hue,"https://i.imgur.com/Nst0hXE.png")
-	--
-	local hueborder = instance.new("Frame")
-	hueborder.Visible = false
-	hueborder.Color = Color3.fromRGB(0,0,0)
-	hueborder.Filled = false
-	hueborder.Thickness = 1
-	hueborder.Size = udim2.snew(1,0,1,0,hue)
-	hueborder.Position = udim2.pnew(0,0,0,0,hue)
-	--
-	local cursor3 = instance.new("Frame")
-	cursor3.Visible = false
-	cursor3.Color = Color3.fromRGB(0,0,0)
-	cursor3.Size = udim2.snew(1,2,0,4,hue)
-	cursor3.Position = udim2.pnew(0,-1,0,2,hue)
-	--
-	local cursor4 = instance.new("Frame")
-	cursor4.Visible = false
-	cursor4.Color = Color3.fromRGB(255,255,255)
-	cursor4.Size = udim2.snew(1,-2,1,-2,cursor3)
-	cursor4.Position = udim2.pnew(0,1,0,1,cursor3)
-	--
-	local transparency = Drawing.new("Image")
-	transparency.Visible = false
-	transparency.Size = udim2.snew(0,120,0,10,color)
-	transparency.Position = udim2.pnew(0,0,1,5,color)
-	library.setimage(transparency,"https://i.imgur.com/rbW3WNd.png")
-	--
-	local transpborder = instance.new("Frame")
-	transpborder.Visible = false
-	transpborder.Color = Color3.fromRGB(0,0,0)
-	transpborder.Filled = false
-	transpborder.Thickness = 1
-	transpborder.Size = udim2.snew(1,0,1,0,transparency)
-	transpborder.Position = udim2.pnew(0,0,0,0,transparency)
-	--
-	local cursor5 = instance.new("Frame")
-	cursor5.Visible = false
-	cursor5.Color = Color3.fromRGB(0,0,0)
-	cursor5.Size = udim2.snew(0,4,1,2,transparency)
-	cursor5.Position = udim2.pnew(0,2,0,-1,transparency)
-	--
-	local cursor6 = instance.new("Frame")
-	cursor6.Visible = false
-	cursor6.Color = Color3.fromRGB(255,255,255)
-	cursor6.Size = udim2.snew(1,-2,1,-2,cursor5)
-	cursor6.Position = udim2.pnew(0,1,0,1,cursor5)
 
-	--
-	local borders = {
-		border1 = border1,
-		border2 = border2,
-		border3 = border3
-	}
-	colorpicker = {frame = frame,color = color,colorimage = colorimage,colorborder = colorborder,colorcursor = cursor1,colorcursor2 = cursor2,hue = hue,hueborder = hueborder,huecursor = cursor3,huecursor2 = cursor4,transparency = transparency,transpborder = transpborder,transpcursor = cursor5,transpcursor2 = cursor6,borders = borders}
-	library.updatecursor()
-end
---
-library.opencolorpicker = function(info)
-	if colorpicker then
-		local transp = info.transparency
-		local framesize = Vector2.new(0,0)
-		local transparency = false
-		if transp then
-			transparency = true
-			framesize = udim2.snew(0,145,0,145)
-		else
-			transparency = false
-			framesize = udim2.snew(0,145,0,130)
-		end
-		local buttonpar = info.button
-		colorpicker.frame.Visible = true
-		colorpicker.borders.border1.Visible = true
-		colorpicker.borders.border2.Visible = true
-		colorpicker.borders.border3.Visible = true
-		colorpicker.color.Visible = true
-		colorpicker.colorimage.Visible = true
-		colorpicker.colorborder.Visible = true
-		colorpicker.colorcursor.Visible = true
-		colorpicker.colorcursor2.Visible = true
-		colorpicker.hue.Visible = true
-		colorpicker.hueborder.Visible = true
-		colorpicker.huecursor.Visible = true
-		colorpicker.huecursor2.Visible = true
-		colorpicker.transparency.Visible = transparency
-		colorpicker.transpborder.Visible = transparency
-		colorpicker.transpcursor.Visible = transparency
-		colorpicker.transpcursor2.Visible = transparency
-		--
-		colorpicker.frame.Size = framesize
-		colorpicker.borders.border3.Size = udim2.snew(0,145+10,0,framesize.y+10)
-		colorpicker.borders.border2.Size = udim2.snew(0,145+8,0,framesize.y+8)
-		colorpicker.borders.border1.Size = udim2.snew(0,145+2,0,framesize.y+2)
-		colorpicker.frame.Position = udim2.pnew(1,10,0,2,buttonpar)
-		colorpicker.borders.border3.Position = udim2.pnew(0,-5,0,-5,colorpicker.frame)
-		colorpicker.borders.border2.Position = udim2.pnew(0,-4,0,-4,colorpicker.frame)
-		colorpicker.borders.border1.Position = udim2.pnew(0,-1,0,-1,colorpicker.frame)
-		colorpicker.color.Position = udim2.pnew(0,5,0,5,colorpicker.frame)
-		colorpicker.colorimage.Position = udim2.pnew(0,5,0,5,colorpicker.frame)
-		colorpicker.colorborder.Position = udim2.pnew(0,0,0,0,colorpicker.color)
-		colorpicker.colorcursor.Position = udim2.pnew(0,-2,0,-2,colorpicker.color)
-		colorpicker.colorcursor2.Position = udim2.pnew(0,1,0,1,colorpicker.colorcursor)
-		colorpicker.hue.Position = udim2.pnew(1,5,0,0,colorpicker.color)
-		colorpicker.hueborder.Position = udim2.pnew(0,0,0,0,colorpicker.hue)
-		colorpicker.huecursor.Position = udim2.pnew(0,-1,0,-2,colorpicker.hue)
-		colorpicker.huecursor2.Position = udim2.pnew(0,1,0,1,colorpicker.huecursor)
-		colorpicker.transparency.Position = udim2.pnew(0,0,1,5,colorpicker.color)
-		colorpicker.transpborder.Position = udim2.pnew(0,0,0,0,colorpicker.transparency)
-		colorpicker.transpcursor.Position = udim2.pnew(0,-2,0,-1,colorpicker.transparency)
-		colorpicker.transpcursor2.Position = udim2.pnew(0,1,0,1,colorpicker.transpcursor)
-		--
-		local defcolor = currentcpcolor
-		local deftransp = currenttransparency
-		local h,s,v = defcolor:ToHSV()
-		currentcpcolortable = {h,s,v,deftransp}
-		--
-		local xmove = s
-		local ymove = 1-v
-		local hymove = 1-h
-		local tymove = deftransp
-		cx = xmove
-		cy = ymove
-		cyy = hymove
-		ty = tymove
-		local msX = xmove
-		local msY = ymove
-		if msX<0 then msX=0 end
-		if msX>1 then msX=1 end
-		if msY<0 then msY=0 end
-		if msY>1 then msY=1 end
-		local toX = colorpicker.color.Size.x-(colorpicker.color.Size.x*msX)
-		local toY = colorpicker.color.Size.y-(colorpicker.color.Size.y*msY)
-		local toaddX = 0
-		local toaddY = 0
-		if toX <= colorpicker.colorcursor.Size.x then
-			toaddX = -(colorpicker.colorcursor.Size.x-toX)
-		end
-		if toY <= colorpicker.colorcursor.Size.y then
-			toaddY = -(colorpicker.colorcursor.Size.y-toY)
-		end
-		colorpicker.color.Color = Color3.fromHSV(h,1,1)
-		colorpicker.colorcursor.Position = udim2.pnew(xmove,toaddX,ymove,toaddY,colorpicker.color)
-		colorpicker.colorcursor2.Position = udim2.pnew(0,1,0,1,colorpicker.colorcursor)
-		colorpicker.huecursor.Position = udim2.pnew(0,-1,hymove,0,colorpicker.hue)
-		colorpicker.huecursor2.Position = udim2.pnew(0,1,0,1,colorpicker.huecursor)
-		colorpicker.transpcursor.Position = udim2.pnew(tymove,0,0,-1,colorpicker.transparency)
-		colorpicker.transpcursor2.Position = udim2.pnew(0,1,0,1,colorpicker.transpcursor)
-		--
-	end
-end
---
-library.movehue = function()
-	local msY = cyy
-	if msY<0 then msY=0 end
-	if msY>1 then msY=1 end
-	local toY = colorpicker.hue.Size.y-(colorpicker.hue.Size.y*msY)
-	local toaddY = 0
-	local cyy = msY
-	if toY <= colorpicker.huecursor.Size.y then
-		toaddY = -(colorpicker.huecursor.Size.y-toY)
-	end
-	colorpicker.huecursor.Position = udim2.pnew(0,-1,cyy,toaddY,colorpicker.hue)
-	colorpicker.huecursor2.Position = udim2.pnew(0,1,0,1,colorpicker.huecursor)
-	currentcpcolortable[1] = 1-msY
-	colorpicker.color.Color = Color3.fromHSV(currentcpcolortable[1],1,1)
-	currentcolorpicker.button.Color = Color3.fromHSV(currentcpcolortable[1],currentcpcolortable[2],currentcpcolortable[3]-(0.5*currentcpcolortable[3]))
-	currentcolorpicker.color.Color = Color3.fromHSV(currentcpcolortable[1],currentcpcolortable[2],currentcpcolortable[3])
-	for i,v in pairs(colorpickers) do
-		if v.button == currentcolorpicker.button then
-			v.cpcolor = Color3.fromHSV(currentcpcolortable[1],currentcpcolortable[2],currentcpcolortable[3])
-		end
-	end
-end
---
-library.movetransp = function()
-	local msX = ty
-	if msX<0 then msX=0 end
-	if msX>1 then msX=1 end
-	local toY = colorpicker.transparency.Size.x-(colorpicker.transparency.Size.x*msX)
-	local toaddX = 0
-	local ty = msX
-	if toY <= colorpicker.transpcursor.Size.x then
-		toaddX = -(colorpicker.transpcursor.Size.x-toY)
-	end
-	colorpicker.transpcursor.Position = udim2.pnew(ty,toaddX,0,-1,colorpicker.transparency)
-	colorpicker.transpcursor2.Position = udim2.pnew(0,1,0,1,colorpicker.transpcursor)
-	currentcpcolortable[4] = 1-msX
-	currentcolorpicker.button.Transparency = currentcpcolortable[4]
-	currentcolorpicker.color.Transparency = currentcpcolortable[4]
-	for i,v in pairs(colorpickers) do
-		if v.button == currentcolorpicker.button then
-			v.transp = currentcpcolortable[4]
-		end
-	end
-end
---
-library.movecpmouse = function()
-	local msX = cx
-	local msY = cy
-	if msX<0 then msX=0 end
-	if msX>1 then msX=1 end
-	if msY<0 then msY=0 end
-	if msY>1 then msY=1 end
-	local toX = colorpicker.color.Size.x-(colorpicker.color.Size.x*msX)
-	local toY = colorpicker.color.Size.y-(colorpicker.color.Size.y*msY)
-	local toaddX = 0
-	local toaddY = 0
-	local cx = msX
-	local cy = msY
-	if toX <= colorpicker.colorcursor.Size.x then
-		toaddX = -(colorpicker.colorcursor.Size.x-toX)
-	end
-	if toY <= colorpicker.colorcursor.Size.y then
-		toaddY = -(colorpicker.colorcursor.Size.y-toY)
-	end
-	currentcpcolortable[2] = msX
-	currentcpcolortable[3] = 1-msY
-	cppos = udim2.pnew(cx,toaddX,cy,toaddY,colorpicker.color)
-	colorpicker.colorcursor.Position = cppos
-	colorpicker.colorcursor2.Position = udim2.pnew(0,1,0,1,colorpicker.colorcursor)
-	currentcolorpicker.button.Color = Color3.fromHSV(currentcpcolortable[1],currentcpcolortable[2],currentcpcolortable[3]-(0.5*currentcpcolortable[3]))
-	currentcolorpicker.color.Color = Color3.fromHSV(currentcpcolortable[1],currentcpcolortable[2],currentcpcolortable[3])
-	for i,v in pairs(colorpickers) do
-		if v.button == currentcolorpicker.button then
-			v.cpcolor = Color3.fromHSV(currentcpcolortable[1],currentcpcolortable[2],currentcpcolortable[3])
-		end
-	end
-	library.movehue()
-	library.movetransp()
-end
---
-library.movecolorpicker = function()
-	if colorpicker and colorpickerenabled then
-		local buttonpar = currentcolorpicker.button
-		colorpicker.borders.border3.Size = udim2.snew(0,145+10,0,colorpicker.frame.Size.y+10)
-		colorpicker.borders.border2.Size = udim2.snew(0,145+8,0,colorpicker.frame.Size.y+8)
-		colorpicker.borders.border1.Size = udim2.snew(0,145+2,0,colorpicker.frame.Size.y+2)
-		colorpicker.frame.Position = udim2.pnew(1,10,0,2,buttonpar)
-		colorpicker.borders.border3.Position = udim2.pnew(0,-5,0,-5,colorpicker.frame)
-		colorpicker.borders.border2.Position = udim2.pnew(0,-4,0,-4,colorpicker.frame)
-		colorpicker.borders.border1.Position = udim2.pnew(0,-1,0,-1,colorpicker.frame)
-		colorpicker.color.Position = udim2.pnew(0,5,0,5,colorpicker.frame)
-		colorpicker.colorimage.Position = udim2.pnew(0,5,0,5,colorpicker.frame)
-		colorpicker.colorborder.Position = udim2.pnew(0,0,0,0,colorpicker.color)
-		colorpicker.hue.Position = udim2.pnew(1,5,0,0,colorpicker.color)
-		colorpicker.hueborder.Position = udim2.pnew(0,0,0,0,colorpicker.hue)
-		colorpicker.huecursor.Position = udim2.pnew(0,-1,0,-2,colorpicker.hue)
-		colorpicker.huecursor2.Position = udim2.pnew(0,1,0,1,colorpicker.huecursor)
-		colorpicker.transparency.Position = udim2.pnew(0,0,1,5,colorpicker.color)
-		colorpicker.transpborder.Position = udim2.pnew(0,0,0,0,colorpicker.transparency)
-		colorpicker.transpcursor.Position = udim2.pnew(0,-2,0,-1,colorpicker.transparency)
-		colorpicker.transpcursor2.Position = udim2.pnew(0,1,0,1,colorpicker.transpcursor)
-		--
-		library.movecpmouse()
-	end
-end
---
-library.closecolorpicker = function()
-	if colorpicker then
-		colorpicker.frame.Visible = false
-		colorpicker.borders.border1.Visible = false
-		colorpicker.borders.border2.Visible = false
-		colorpicker.borders.border3.Visible = false
-		colorpicker.color.Visible = false
-		colorpicker.colorimage.Visible = false
-		colorpicker.colorborder.Visible = false
-		colorpicker.colorcursor.Visible = false
-		colorpicker.colorcursor2.Visible = false
-		colorpicker.hue.Visible = false
-		colorpicker.hueborder.Visible = false
-		colorpicker.huecursor.Visible = false
-		colorpicker.huecursor2.Visible = false
-		colorpicker.transparency.Visible = false
-		colorpicker.transpborder.Visible = false
-		colorpicker.transpcursor.Visible = false
-		colorpicker.transpcursor2.Visible = false
-		colorpickerenabled = false
-		currentcolorpicker = nil
-		currentcpcolor = nil
-	end
-end
---
-library.init = function()
-	library.makecolorpicker()
-end
---
-library.updatecursor()
---//
-library.disablemovement = function()
-	controls:Disable()
-	if plr.Character:FindFirstChild("Head") then
-	zoom = (workspace.CurrentCamera.CoordinateFrame.p - plr.Character.Head.Position).magnitude
-	plr.CameraMaxZoomDistance = zoom
-	plr.CameraMinZoomDistance = zoom
-	end
-end
---
-library.enablemovement = function()
-	controls:Enable()
-	plr.CameraMaxZoomDistance = maxzoom
-	plr.CameraMinZoomDistance = minzoom
-end
---
-library.opentab = function(tab)
-	for i,v in pairs(tabs) do
-		if v.tab == tab then
-			v.tb.Color = Color3.fromRGB(35, 35, 35)
-			v.open = true
-		end
-	end
-	for i,v in pairs(sections) do
-		if v.tab == tab then
-			v.section.Visible = true
-			for z,x in pairs(v.borders) do
-				x.Visible = true
-			end
-			v.label.Visible = true
-			v.open = true
-		end
-	end
-	for i,v in pairs(buttons) do
-		if v.tab == tab then
-			v.open = true
-			v.button.Visible = true
-			v.label.Visible = true
-			for z,x in pairs(v.borders) do
-				x.Visible = true
+local function createBind(option, parent)
+	local binding
+	local holding
+	local loop
+	local text = string.match(option.key, "Mouse") and string.sub(option.key, 1, 5) .. string.sub(option.key, 12, 13) or option.key
+
+	local main = library:Create("TextLabel", {
+		LayoutOrder = option.position,
+		Size = UDim2.new(1, 0, 0, 33),
+		BackgroundTransparency = 1,
+		Text = " " .. option.text,
+		TextSize = 17,
+		Font = Enum.Font.Gotham,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = parent.content
+	})
+	
+	local round = library:Create("ImageLabel", {
+		Position = UDim2.new(1, -6, 0, 4),
+		Size = UDim2.new(0, -textService:GetTextSize(text, 16, Enum.Font.Gotham, Vector2.new(9e9, 9e9)).X - 16, 1, -10),
+		SizeConstraint = Enum.SizeConstraint.RelativeYY,
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = Color3.fromRGB(40, 40, 40),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = main
+	})
+	
+	local bindinput = library:Create("TextLabel", {
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		Text = text,
+		TextSize = 16,
+		Font = Enum.Font.Gotham,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		Parent = round
+	})
+	
+	local inContact
+	main.InputBegan:connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			inContact = true
+			if not binding then
+				tweenService:Create(round, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(60, 60, 60)}):Play()
 			end
 		end
-	end
-	for i,v in pairs(toggles) do
-		if v.tab == tab then
-			v.open = true
-			v.button.Visible = true
-			v.label.Visible = true
-			for z,x in pairs(v.borders) do
-				x.Visible = true
-			end
-		end
-	end
-	for i,v in pairs(sliders) do
-		if v.tab == tab then
-			v.open = true
-			v.button.Visible = true
-			v.slider.Visible = true
-			v.label.Visible = true
-			v.label2.Visible = true
-			for z,x in pairs(v.borders) do
-				x.Visible = true
-			end
-		end
-	end
-	for i,v in pairs(textboxs) do
-		if v.tab == tab then
-			v.open = true
-			v.button.Visible = true
-			v.label.Visible = true
-			for z,x in pairs(v.borders) do
-				x.Visible = true
-			end
-		end
-	end
-	for i,v in pairs(keybinds) do
-		if v.tab == tab then
-			v.open = true
-			v.button.Visible = true
-			v.label.Visible = true
-			v.value.Visible = true
-			for z,x in pairs(v.borders) do
-				x.Visible = true
-			end
-		end
-	end
-	for i,v in pairs(dropdowns) do
-		if v.tab == tab then
-			v.open = true
-			v.button.Visible = true
-			v.line.Visible = true
-			v.label.Visible = true
-			for z,x in pairs(v.borders) do
-				x.Visible = true
-			end
-		end
-	end
-	if ddenabled and ddcontent then
-		for i,v in pairs(ddcontent) do
-			v.button:Remove()
-			v.label:Remove()
-			for z,x in pairs(v.borders) do
-				x:Remove()
-			end
-		end
-		ddcontent = nil
-		ddenabled = false
-	end
-	for i,v in pairs(colorpickers) do
-		if v.tab == tab then
-			v.open = true
-			v.button.Visible = true
-			v.color.Visible = true
-			v.label.Visible = true
-			for z,x in pairs(v.borders) do
-				x.Visible = true
-			end
-		end
-	end
-	library.updatecursor()
-	library.closecolorpicker()
-end
---
-library.closetab = function(tab,leave)
-	for i,v in pairs(tabs) do
-		if v.tab == tab then
-			v.tb.Color = Color3.fromRGB(20, 20, 20)
-			v.open = false
-			if leave then
-				v.lastopen = true
-			end
-		end
-	end
-	for i,v in pairs(sections) do
-		if v.tab == tab then
-			v.section.Visible = false
-			for z,x in pairs(v.borders) do
-				x.Visible = false
-			end
-			v.label.Visible = false
-			v.open = false
-		end
-	end
-	for i,v in pairs(buttons) do
-		if v.tab == tab then
-			v.open = false
-			v.button.Visible = false
-			v.label.Visible = false
-			for z,x in pairs(v.borders) do
-				x.Visible = false
-			end
-		end
-	end
-	for i,v in pairs(toggles) do
-		if v.tab == tab then
-			v.open = false
-			v.button.Visible = false
-			v.label.Visible = false
-			for z,x in pairs(v.borders) do
-				x.Visible = false
-			end
-		end
-	end
-	for i,v in pairs(sliders) do
-		if v.tab == tab then
-			v.open = false
-			v.button.Visible = false
-			v.slider.Visible = false
-			v.label.Visible = false
-			v.label2.Visible = false
-			for z,x in pairs(v.borders) do
-				x.Visible = false
-			end
-		end
-	end
-	for i,v in pairs(buttons) do
-		if v.tab == tab then
-			v.open = false
-			v.button.Visible = false
-			v.label.Visible = false
-			for z,x in pairs(v.borders) do
-				x.Visible = false
-			end
-		end
-	end
-	for i,v in pairs(textboxs) do
-		if v.tab == tab then
-			v.open = false
-			v.button.Visible = false
-			v.label.Visible = false
-			for z,x in pairs(v.borders) do
-				x.Visible = false
-			end
-		end
-	end
-	for i,v in pairs(keybinds) do
-		if v.tab == tab then
-			v.open = false
-			v.button.Visible = false
-			v.label.Visible = false
-			v.value.Visible = false
-			for z,x in pairs(v.borders) do
-				x.Visible = false
-			end
-		end
-	end
-	for i,v in pairs(dropdowns) do
-		if v.tab == tab then
-			v.open = false
-			v.button.Visible = false
-			v.line.Visible = false
-			v.label.Visible = false
-			for z,x in pairs(v.borders) do
-				x.Visible = false
-			end
-		end
-	end
-	if ddenabled and ddcontent then
-		for i,v in pairs(ddcontent) do
-			v.button:Remove()
-			v.label:Remove()
-			for z,x in pairs(v.borders) do
-				x:Remove()
-			end
-		end
-		ddcontent = nil
-		ddenabled = false
-	end
-	for i,v in pairs(colorpickers) do
-		if v.tab == tab then
-			v.open = false
-			v.button.Visible = false
-			v.color.Visible = false
-			v.label.Visible = false
-			for z,x in pairs(v.borders) do
-				x.Visible = false
-			end
-		end
-	end
-	library.updatecursor()
-	library.closecolorpicker()
-end
---
-local libraryopen = true
---
-library.closeui = function()
-	for i,v in pairs(tabs) do
-		if v.open then
-			library.closetab(v.tab,true)
-		end
-		v.tab.Visible = false
-	end
-	--
-	local topbar = main[1].topbar
-	--
-	main[1].frame.Visible = false
-	main[1].tabbar.Visible = false
-	--
-	for i,v in pairs(main[1].borders.tabbar) do
-		v.Visible = false
-	end
-	--
-	for i,v in pairs(main[1].borders.topbar) do
-		v.Visible = false
-	end
-	--
-	for i,v in pairs(tabs) do
-		v.tb.Visible = false
-		v.tbborder.Visible = false
-		v.tbtext.Visible = false
-	end
-	--
-	local border3 = main[1].borders.mainui.border3
-	border3.Size = udim2.snew(1,10,1,10,topbar)
-	border3.Position = udim2.pnew(0,-5,0,-5,topbar)
-	--
-	local border2 = main[1].borders.mainui.border2
-	border2.Size = udim2.snew(1,8,1,8,topbar)
-	border2.Position = udim2.pnew(0,-4,0,-4,topbar)
-	--
-	local border1 = main[1].borders.mainui.border1
-	border1.Size = udim2.snew(1,2,1,2,topbar)
-	border1.Position = udim2.pnew(0,-1,0,-1,topbar)
-	--
-	libraryopen = false
-end
---
-library.openui = function()
-	for i,v in pairs(tabs) do
-		if v.lastopen then
-			library.opentab(v.tab)
-			v.lastopen = false
-		end
-		v.tab.Visible = true
-	end
-	--
-	local topbar = main[1].topbar
-	--
-	main[1].frame.Visible = true
-	main[1].tabbar.Visible = true
-	--
-	for i,v in pairs(main[1].borders.tabbar) do
-		v.Visible = true
-	end
-	--
-	for i,v in pairs(main[1].borders.topbar) do
-		v.Visible = true
-	end
-	--
-	for i,v in pairs(tabs) do
-		v.tb.Visible = true
-		v.tbborder.Visible = true
-		v.tbtext.Visible = true
-	end
-	--
-	local border3 = main[1].borders.mainui.border3
-	border3.Size = udim2.snew(1,10,1,10,main[1].frame)
-	border3.Position = udim2.pnew(0,-5,0,-5,main[1].frame)
-	--
-	local border2 = main[1].borders.mainui.border2
-	border2.Size = udim2.snew(1,8,1,8,main[1].frame)
-	border2.Position = udim2.pnew(0,-4,0,-4,main[1].frame)
-	--
-	local border1 = main[1].borders.mainui.border1
-	border1.Size = udim2.snew(1,2,1,2,main[1].frame)
-	border1.Position = udim2.pnew(0,-1,0,-1,main[1].frame)
-	--
-	libraryopen = true
-end
---
-library.new = function(info)
-    maincolor = info.maincolor
-	mousedisable = info.mousedisable
-	font = info.font
-	-- mainframe border
-	local bordercolor = info.bordercolor or Color3.fromRGB(0, 0, 0)
-	local border3 = instance.new("Frame")
-	border3.Size = udim2.snew(0,info.size.x+10,0,info.size.y+10+43+20)
-	border3.Color = bordercolor
-	--
-	local border2 = instance.new("Frame")
-	border2.Size = udim2.snew(0,info.size.x+8,0,info.size.y+8+43+20)
-	border2.Color = Color3.fromRGB(20, 20, 20)
-	--
-	local border1 = instance.new("Frame")
-	border1.Size = udim2.snew(0,info.size.x+2,0,info.size.y+2+43+20)
-	border1.Color = bordercolor
-	--
-	local frame = instance.new("Frame")
-	frame.Size = udim2.snew(0,info.size.x,0,info.size.y+43+20)
-	frame.Color = Color3.fromRGB(30, 30, 30)
-	frame.Position = udim2.pnew(0.5,8-(frame.Size.x/2),0.5,8-(frame.Size.y/2))
-	--
-	border1.Position = udim2.pnew(0,-1,0,-1,frame)
-	border2.Position = udim2.pnew(0,-4,0,-4,frame)
-	border3.Position = udim2.pnew(0,-4,0,-4,frame)
-	--
-	local topbar = instance.new("Frame")
-	topbar.Size = udim2.snew(1,0,0,15,frame)
-	topbar.Position = udim2.pnew(0,0,0,0,frame)
-	topbar.Color = Color3.fromRGB(20, 20, 20)
-	--
-	local minimize1 = instance.new("Frame")
-	minimize1.Size = udim2.snew(0,10,0,2,topbar)
-	minimize1.Position = udim2.pnew(1,-15,0.5,-1,topbar)
-	minimize1.Color = Color3.fromRGB(255, 255, 255)
-	--
-	local tabbar = instance.new("Frame")
-	tabbar.Size = udim2.snew(1,0,0,20,frame)
-	tabbar.Position = udim2.pnew(0,0,1,4,topbar)
-	tabbar.Color = Color3.fromRGB(25, 25, 25)
-	-- topbar border
-	local border4 = instance.new("Frame")
-	border4.Size = udim2.snew(0,info.size.x,0,1)
-	border4.Color = bordercolor
-	border4.Position = udim2.pnew(0,0,1,0,topbar)
-	--
-	local border5 = instance.new("Frame")
-	border5.Size = udim2.snew(0,info.size.x,0,2)
-	border5.Color = Color3.fromRGB(20, 20, 20)
-	border5.Position = udim2.pnew(0,0,1,0,border4)
-	--
-	local border6 = instance.new("Frame")
-	border6.Size = udim2.snew(0,info.size.x,0,1)
-	border6.Color = bordercolor
-	border6.Position = udim2.pnew(0,0,1,0,border5)
-	-- tabbar border
-	local border7 = instance.new("Frame")
-	border7.Size = udim2.snew(0,info.size.x,0,1)
-	border7.Color = bordercolor
-	border7.Position = udim2.pnew(0,0,1,0,tabbar)
-	--
-	local border8 = instance.new("Frame")
-	border8.Size = udim2.snew(0,info.size.x,0,2)
-	border8.Color = Color3.fromRGB(20, 20, 20)
-	border8.Position = udim2.pnew(0,0,1,0,border7)
-	--
-	local border9 = instance.new("Frame")
-	border9.Size = udim2.snew(0,info.size.x,0,1)
-	border9.Color = bordercolor
-	border9.Position = udim2.pnew(0,0,1,0,border8)
-	--
-	local label = instance.new("TextLabel")
-	label.Text = info.name
-	label.Size = 12
-	label.Position = udim2.pnew(0,5,0.5,-(label.TextBounds.Y/2),topbar)
-	label.Color = info.maincolor or Color3.fromRGB(255,255,255)
-	local borders = {
-		mainui = {
-			border1 = border1,
-			border2 = border2,
-			border3 = border3
-		},
-		topbar = {
-			border4 = border4,
-			border5 = border5,
-			border6 = border6
-		},
-		tabbar = {
-			border7 = border7,
-			border8 = border8,
-			border9 = border9
-		}
-	}
-	table.insert(main,{frame = frame,minimise = minimize1,borders = borders,topbar = topbar,tabbar = tabbar,label = label})
-	return frame
-end
---
-library.newtab = function(info)
-	local tabbutton = instance.new("Frame")
-	tabbutton.Color = Color3.fromRGB(20, 20, 20)
-	local border = instance.new("Frame")
-	border.Color = Color3.fromRGB(0, 0, 0)
-	local text = instance.new("TextLabel")
-	text.Text = info.name
-	text.Color = maincolor
-	text.Size = 12
-	text.Center = true
-	--
-	local textboundsx = text.TextBounds.x
-	local textboundsy = text.TextBounds.y
-	tabbutton.Size = udim2.snew(0,textboundsx+15,1,0,main[1].tabbar)
-	border.Size = udim2.snew(0,1,1,0,tabbutton)
-	tabbutton.Position = udim2.pnew(0,main.tabbuttonx,0,0,main[1].tabbar)
-	border.Position = udim2.pnew(1,0,0,0,tabbutton)
-	text.Position = udim2.pnew(0.5,0,0.5,-(textboundsy/2),tabbutton)
-	--
-	local tab = instance.new("Frame")
-	tab.Size = udim2.snew(1,0,1,-43,main[1].frame)
-	tab.Position = udim2.pnew(0,0,0,43,main[1].frame)
-	tab.Color = Color3.fromRGB(30, 30, 30)
-	--
-	table.insert(tabs,{name = info.name,open = false,lastopen = false,tab = tab,tb = tabbutton,tbborder = border,tbtext = text,tby = main.tabbuttonx,leftsectiony = 0,rightsectiony = 0})
-	main.tabbuttonx = main.tabbuttonx+(textboundsx+15+1)
-	return tab
-end
---
-library.newsection = function(info)
-	local x = 0
-	local y = 0
-	local open = false
-	if info.side == "left" then x = 10 else x = 165 end
-	local sectionyname = info.side.."sectiony"
-	for i,v in pairs(tabs) do if v.tab == info.tab then y = v[sectionyname] end end
-	for i,v in pairs(tabs) do if v.tab == info.tab then open = v.open end end
-	--
-	local border3 = instance.new("Frame")
-	border3.Size = udim2.snew(0,140+8,0,info.size+8)
-	border3.Color = Color3.fromRGB(0,0,0)
-	border3.Visible = open
-	border3.Position = udim2.pnew(0,x-4,0,10+y-4,info.tab)
-	--
-	local border2 = instance.new("Frame")
-	border2.Size = udim2.snew(0,140+6,0,info.size+6)
-	border2.Color = Color3.fromRGB(20, 20, 20)
-	border2.Visible = open
-	border2.Position = udim2.pnew(0,x-3,0,10+y-3,info.tab)
-	--
-	local border1 = instance.new("Frame")
-	border1.Size = udim2.snew(0,140+2,0,info.size+2)
-	border1.Color = Color3.fromRGB(0,0,0)
-	border1.Visible = open
-	border1.Position = udim2.pnew(0,x-1,0,10+y-1,info.tab)
-	--
-	local section = instance.new("Frame")
-	section.Size = udim2.snew(0,140,0,info.size,info.tab)
-	section.Position = udim2.pnew(0,x,0,10+y,info.tab)
-	section.Color = Color3.fromRGB(20, 20, 20)
-	section.Visible = open
-	--
-	local label = instance.new("TextLabel")
-	label.Text = info.name
-	label.Size = 12
-	label.Color = maincolor
-	label.Center = true
-	label.Visible = false
-	label.Position = udim2.pnew(0.5,0,0,-(label.TextBounds.Y/2),border2)
-	--
-	local borders = {
-		border3 = border3,
-		border2 = border2,
-		border1 = border1
-	}
-	for i,v in pairs(tabs) do if v.tab == info.tab then v[sectionyname] = v[sectionyname]+info.size+15 end end
-	table.insert(sections,{section = section,side = info.side,open = open,yaxis = 10,sy = y,label = label,tab = info.tab,borders = borders})
-	library.updatecursor()
-	return section
-end
---
-library.newbutton = function(info)
-	local open = false
-	local y = 0
-	for i,v in pairs(sections) do if v.section == info.section then open = v.open end end
-	for i,v in pairs(sections) do if v.section == info.section then y = v.yaxis end end
-	--
-	local border1 = instance.new("Frame")
-	border1.Color = Color3.fromRGB(0,0,0)
-	border1.Visible = open
-	--
-	local border2 = instance.new("Frame")
-	border2.Color = Color3.fromRGB(20,20,20)
-	border2.Visible = open
-	--
-	local border3 = instance.new("Frame")
-	border3.Color = Color3.fromRGB(0,0,0)
-	border3.Visible = open
-	--
-	local buttonframe = instance.new("Frame")
-	buttonframe.Size = udim2.snew(0.9,0,0,12,info.section)
-	buttonframe.Position = udim2.pnew(0.5,-(buttonframe.Size.x/2),0,y,info.section)
-	buttonframe.Color = Color3.fromRGB(20, 20, 20)
-	buttonframe.Visible = open
-	--
-	border1.Size = udim2.snew(1,6,1,6,buttonframe)
-	border1.Position = udim2.pnew(0,-3,0,-3,buttonframe)
-	--
-	border2.Size = udim2.snew(1,4,1,4,buttonframe)
-	border2.Position = udim2.pnew(0,-2,0,-2,buttonframe)
-	--
-	border3.Size = udim2.snew(1,2,1,2,buttonframe)
-	border3.Position = udim2.pnew(0,-1,0,-1,buttonframe)
-	--
-	local label = instance.new("TextLabel")
-	label.Text = info.name
-	label.Size = 12
-	label.Color = maincolor
-	label.Center = true
-	label.Visible = false
-	label.Position = udim2.pnew(0.5,0,0.5,-(label.TextBounds.Y/2)-1,buttonframe)
-	--
-	local borders = {
-		border1 = border1,
-		border2 = border2,
-		border3 = border3
-	}
-	for i,v in pairs(sections) do if v.section == info.section then v.yaxis = v.yaxis+20+2 end end
-	table.insert(buttons,{button = buttonframe,open = false,callback = info.callback,label = label,yb = y,borders = borders,section = info.section,tab = info.tab})
-	library.updatecursor()
-end
---
-library.newtoggle = function(info)
-	local open = false
-	local y = 0
-	for i,v in pairs(sections) do if v.section == info.section then open = v.open end end
-	for i,v in pairs(sections) do if v.section == info.section then y = v.yaxis end end
-	--
-	local border1 = instance.new("Frame")
-	border1.Color = Color3.fromRGB(0,0,0)
-	border1.Visible = open
-	--
-	local border2 = instance.new("Frame")
-	border2.Color = Color3.fromRGB(20,20,20)
-	border2.Visible = open
-	--
-	local border3 = instance.new("Frame")
-	border3.Color = Color3.fromRGB(0,0,0)
-	border3.Visible = open
-	--
-	local calc = ""
-	local buttonframe = instance.new("Frame")
-	buttonframe.Size = udim2.snew(0,12,0,12,info.section)
-	buttonframe.Position = udim2.pnew(0.1,-(buttonframe.Size.x/2+1),0,y,info.section)
-	if info.def == true then
-		buttonframe.Color = maincolor
-	else
-		buttonframe.Color = Color3.fromRGB(20, 20, 20)
-	end
-	buttonframe.Visible = open
-	--
-	border1.Size = udim2.snew(1,6,1,6,buttonframe)
-	border1.Position = udim2.pnew(0,-3,0,-3,buttonframe)
-	--
-	border2.Size = udim2.snew(1,4,1,4,buttonframe)
-	border2.Position = udim2.pnew(0,-2,0,-2,buttonframe)
-	--
-	border3.Size = udim2.snew(1,2,1,2,buttonframe)
-	border3.Position = udim2.pnew(0,-1,0,-1,buttonframe)
-	--
-	local label = instance.new("TextLabel")
-	label.Text = info.name
-	label.Color = info.textcolor or maincolor
-	label.Size = 12
-	label.Visible = false
-	label.Position = udim2.pnew(1,7,0.5,-(label.TextBounds.Y/2)-1,buttonframe)
-	--
-	local borders = {
-		border1 = border1,
-		border2 = border2,
-		border3 = border3
-	}
-	for i,v in pairs(sections) do if v.section == info.section then v.yaxis = v.yaxis+20+2 end end
-	table.insert(toggles,{button = buttonframe,open = false,callback = info.callback,enabled = info.def or false,ty = y,label = label,borders = borders,section = info.section,tab = info.tab})
-	library.updatecursor()
-end
---
-library.newslider = function(info)
-	local maxinfo = info.max or 100
-	local mininfo = info.min or 0
-	local definfo = info.def or mininfo
-	local ended = info.ended or false
-	local open = false
-	local y = 0
-	for i,v in pairs(sections) do if v.section == info.section then open = v.open end end
-	for i,v in pairs(sections) do if v.section == info.section then y = v.yaxis end end
-	--
-	local border1 = instance.new("Frame")
-	border1.Color = Color3.fromRGB(0,0,0)
-	border1.Visible = open
-	--
-	local border2 = instance.new("Frame")
-	border2.Color = Color3.fromRGB(20,20,20)
-	border2.Visible = open
-	--
-	local border3 = instance.new("Frame")
-	border3.Color = Color3.fromRGB(0,0,0)
-	border3.Visible = open
-	--
-	local buttonframe = instance.new("Frame")
-	buttonframe.Size = udim2.snew(0.9,0,0,6,info.section)
-	buttonframe.Position = udim2.pnew(0.5,-(buttonframe.Size.x/2),0,y+10,info.section)
-	buttonframe.Color = Color3.fromRGB(20, 20, 20)
-	buttonframe.Visible = open
-	--
-	local slide = instance.new("Frame")
-	slide.Size = udim2.snew(0,0,1,0,buttonframe)
-	slide.Position = udim2.pnew(0,0,0,0,buttonframe)
-	slide.Color = maincolor or Color3.fromRGB(35, 35, 35)
-	slide.Visible = open
-	--
-	border1.Size = udim2.snew(1,6,1,6,buttonframe)
-	border1.Position = udim2.pnew(0,-3,0,-3,buttonframe)
-	--
-	border2.Size = udim2.snew(1,4,1,4,buttonframe)
-	border2.Position = udim2.pnew(0,-2,0,-2,buttonframe)
-	--
-	border3.Size = udim2.snew(1,2,1,2,buttonframe)
-	border3.Position = udim2.pnew(0,-1,0,-1,buttonframe)
-	--
-	local label = instance.new("TextLabel")
-	label.Text = info.name
-	label.Color = maincolor
-	label.Size = 12
-	label.Center = false
-	label.Visible = false
-	label.Position = udim2.pnew(0,0,0,-16,buttonframe)
-	--
-	local label2 = instance.new("TextLabel")
-	label2.Text = "0"
-	label2.Size = 12
-	label2.Center = false
-	label2.Visible = false
-	--
-	local calc = buttonframe.Size.X/(maxinfo-mininfo)
-	local xval = calc * (definfo-mininfo)
-	slide.Size=udim2.snew(0,xval,1,0,buttonframe)
-	label2.Text = tostring(definfo)
-	label2.Position = udim2.pnew(1,-(label2.TextBounds.x),0,-16,buttonframe)
-	--
-	local borders = {
-		border1 = border1,
-		border2 = border2,
-		border3 = border3
-	}
-	for i,v in pairs(sections) do if v.section == info.section then v.yaxis = v.yaxis+26 end end
-	table.insert(sliders,{button = buttonframe,slider = slide,min = mininfo,max = maxinfo,open = false,sy = y,ended = ended,callback = info.callback,label = label,label2 = label2,borders = borders,section = info.section,tab = info.tab})
-	library.updatecursor()
-end
---
-library.newtextbox = function(info)
-	local open = false
-	local y = 0
-	local original = info.name
-	local lower = info.lower or false
-	for i,v in pairs(sections) do if v.section == info.section then open = v.open end end
-	for i,v in pairs(sections) do if v.section == info.section then y = v.yaxis end end
-	--
-	local border1 = instance.new("Frame")
-	border1.Color = Color3.fromRGB(0,0,0)
-	border1.Visible = open
-	--
-	local border2 = instance.new("Frame")
-	border2.Color = Color3.fromRGB(20,20,20)
-	border2.Visible = open
-	--
-	local border3 = instance.new("Frame")
-	border3.Color = Color3.fromRGB(0,0,0)
-	border3.Visible = open
-	--
-	local buttonframe = instance.new("Frame")
-	buttonframe.Size = udim2.snew(0.9,0,0,12,info.section)
-	buttonframe.Position = udim2.pnew(0.5,-(buttonframe.Size.x/2),0,y,info.section)
-	buttonframe.Color = Color3.fromRGB(20, 20, 20)
-	buttonframe.Visible = open
-	--
-	border1.Size = udim2.snew(1,6,1,6,buttonframe)
-	border1.Position = udim2.pnew(0,-3,0,-3,buttonframe)
-	--
-	border2.Size = udim2.snew(1,4,1,4,buttonframe)
-	border2.Position = udim2.pnew(0,-2,0,-2,buttonframe)
-	--
-	border3.Size = udim2.snew(1,2,1,2,buttonframe)
-	border3.Position = udim2.pnew(0,-1,0,-1,buttonframe)
-	--
-	local label = instance.new("TextLabel")
-	label.Text = info.name
-	label.Size = 12
-	label.Color = maincolor
-	label.Center = true
-	label.Visible = false
-	label.Position = udim2.pnew(0.5,0,0.5,-(label.TextBounds.Y/2)-1,buttonframe)
-	--
-	local borders = {
-		border1 = border1,
-		border2 = border2,
-		border3 = border3
-	}
-	for i,v in pairs(sections) do if v.section == info.section then v.yaxis = v.yaxis+20+2 end end
-	table.insert(textboxs,{button = buttonframe,lower = lower,original = original,open = false,ty = y,callback = info.callback,label = label,borders = borders,section = info.section,tab = info.tab})
-	library.updatecursor()
-end
---
-library.newkeybind = function(info)
-	local open = false
-	local y = 0
-	for i,v in pairs(sections) do if v.section == info.section then open = v.open end end
-	for i,v in pairs(sections) do if v.section == info.section then y = v.yaxis end end
-	--
-	local border1 = instance.new("Frame")
-	border1.Color = Color3.fromRGB(0,0,0)
-	border1.Visible = open
-	--
-	local border2 = instance.new("Frame")
-	border2.Color = Color3.fromRGB(20,20,20)
-	border2.Visible = open
-	--
-	local border3 = instance.new("Frame")
-	border3.Color = Color3.fromRGB(0,0,0)
-	border3.Visible = open
-	--
-	local calc = ""
-	local buttonframe = instance.new("Frame")
-	buttonframe.Size = udim2.snew(0,20,0,12,info.section)
-	buttonframe.Position = udim2.pnew(1,-(buttonframe.Size.x)-7,0,y,info.section)
-	buttonframe.Color = Color3.fromRGB(20, 20, 20)
-	buttonframe.Visible = open
-	--
-	border1.Size = udim2.snew(1,6,1,6,buttonframe)
-	border1.Position = udim2.pnew(0,-3,0,-3,buttonframe)
-	--
-	border2.Size = udim2.snew(1,4,1,4,buttonframe)
-	border2.Position = udim2.pnew(0,-2,0,-2,buttonframe)
-	--
-	border3.Size = udim2.snew(1,2,1,2,buttonframe)
-	border3.Position = udim2.pnew(0,-1,0,-1,buttonframe)
-	--
-	local label = instance.new("TextLabel")
-	label.Text = info.name
-	label.Size = 12
-	label.Color = maincolor
-	label.Visible = open
-	label.Position = udim2.pnew(-5.3,0,0.5,-(label.TextBounds.Y/2)-1,buttonframe)
-	--
-	local value = instance.new("TextLabel")
-	value.Text = info.def or "E"
-	value.Size = 12
-	value.Color = maincolor
-	value.Visible = open
-	value.Center = true
-	value.Position = udim2.pnew(0.5,0,0.5,-(value.TextBounds.Y/2)-1,buttonframe)
-	--
-	local borders = {
-		border1 = border1,
-		border2 = border2,
-		border3 = border3
-	}
-	for i,v in pairs(sections) do if v.section == info.section then v.yaxis = v.yaxis+20+2 end end
-	table.insert(keybinds,{button = buttonframe,open = false,callback = info.callback,enabled = false,ky = y,label = label,value = value,borders = borders,section = info.section,tab = info.tab})
-	library.updatecursor()
-end
---
-library.newdropdown = function(info)
-	local open = false
-	local y = 0
-	for i,v in pairs(sections) do if v.section == info.section then open = v.open end end
-	for i,v in pairs(sections) do if v.section == info.section then y = v.yaxis end end
-	--
-	local border1 = instance.new("Frame")
-	border1.Color = Color3.fromRGB(0,0,0)
-	border1.Visible = open
-	--
-	local border2 = instance.new("Frame")
-	border2.Color = Color3.fromRGB(20,20,20)
-	border2.Visible = open
-	--
-	local border3 = instance.new("Frame")
-	border3.Color = Color3.fromRGB(0,0,0)
-	border3.Visible = open
-	--
-	local buttonframe = instance.new("Frame")
-	buttonframe.Size = udim2.snew(0.9,0,0,12,info.section)
-	buttonframe.Position = udim2.pnew(0.5,-(buttonframe.Size.x/2),0,y,info.section)
-	buttonframe.Color = Color3.fromRGB(20, 20, 20)
-	buttonframe.Visible = open
-	--
-	border1.Size = udim2.snew(1,6,1,6,buttonframe)
-	border1.Position = udim2.pnew(0,-3,0,-3,buttonframe)
-	--
-	border2.Size = udim2.snew(1,4,1,4,buttonframe)
-	border2.Position = udim2.pnew(0,-2,0,-2,buttonframe)
-	--
-	border3.Size = udim2.snew(1,2,1,2,buttonframe)
-	border3.Position = udim2.pnew(0,-1,0,-1,buttonframe)
-	--
-	local label = instance.new("TextLabel")
-	label.Text = info.name
-	label.Size = 12
-	label.Color = maincolor
-	label.Center = true
-	label.Visible = open
-	label.Position = udim2.pnew(0.5,0,0.5,-(label.TextBounds.Y/2)-1,buttonframe)
-	--
-	local line = instance.new("Frame")
-	line.Size = udim2.snew(0,5,0,1,buttonframe)
-	line.Position = udim2.pnew(1,-12.5,0.5,-0.5,buttonframe)
-	line.Color = Color3.fromRGB(255, 255, 255)
-	line.Visible = open
-	--
-	local borders = {
-		border1 = border1,
-		border2 = border2,
-		border3 = border3
-	}
-	for i,v in pairs(sections) do if v.section == info.section then v.yaxis = v.yaxis+20+2 end end
-	table.insert(dropdowns,{button = buttonframe,options = info.options,line = line,open = false,callback = info.callback,label = label,yb = y,borders = borders,section = info.section,tab = info.tab})
-	library.updatecursor()
-end
---
-library.newcolorpicker = function(info)
-	local default = info.def or Color3.fromRGB(255,255,255)
-	local deftransp = info.transp or 0
-	local h,s,v = default:ToHSV()
-	local highercol = Color3.fromHSV(h,s,v-(0.5*v))
-	local open = false
-	local y = 0
-	for i,v in pairs(sections) do if v.section == info.section then open = v.open end end
-	for i,v in pairs(sections) do if v.section == info.section then y = v.yaxis end end
-	--
-	local border1 = instance.new("Frame")
-	border1.Color = Color3.fromRGB(0,0,0)
-	border1.Visible = open
-	--
-	local border2 = instance.new("Frame")
-	border2.Color = Color3.fromRGB(20,20,20)
-	border2.Visible = open
-	--
-	local border3 = instance.new("Frame")
-	border3.Color = Color3.fromRGB(0,0,0)
-	border3.Visible = open
-	--	
-	local buttonframe = instance.new("Frame")
-	buttonframe.Size = udim2.snew(0,20,0,12,info.section)
-	buttonframe.Position = udim2.pnew(1,-(buttonframe.Size.x)-7,0,y,info.section)
-	buttonframe.Color = highercol
-	buttonframe.Visible = open
-	--
-	local colors = instance.new("Frame")
-	colors.Size = udim2.snew(0.8,0,0.6,0,buttonframe)
-	colors.Position = udim2.pnew(0.5,-(colors.Size.x/2),0.5,-(colors.Size.y/2),buttonframe)
-	colors.Color = default
-	colors.Visible = open
-	--
-	border1.Size = udim2.snew(1,6,1,6,buttonframe)
-	border1.Position = udim2.pnew(0,-3,0,-3,buttonframe)
-	--
-	border2.Size = udim2.snew(1,4,1,4,buttonframe)
-	border2.Position = udim2.pnew(0,-2,0,-2,buttonframe)
-	--
-	border3.Size = udim2.snew(1,2,1,2,buttonframe)
-	border3.Position = udim2.pnew(0,-1,0,-1,buttonframe)
-	--
-	local label = instance.new("TextLabel")
-	label.Text = info.name
-	label.Color = maincolor
-	label.Size = 12
-	label.Visible = open
-	label.Position = udim2.pnew(-5.3,0,0.5,-(label.TextBounds.Y/2)-1,buttonframe)
-	--
-	local borders = {
-		border1 = border1,
-		border2 = border2,
-		border3 = border3
-	}
-	for i,v in pairs(sections) do if v.section == info.section then v.yaxis = v.yaxis+20+2 end end
-	table.insert(colorpickers,{button = buttonframe,transparency = info.transparency,cpcolor = default,transp = deftransp,color = colors,open = false,callback = info.callback,enabled = false,ky = y,label = label,borders = borders,section = info.section,tab = info.tab})
-	library.updatecursor()
-end
---
-function mouseLocation()
-	return uis:GetMouseLocation()
-end
---
-function mouseOver(Values)
-	local X1, Y1, X2, Y2 = Values[1], Values[2], Values[3], Values[4]
-	local ml = mouseLocation()
-	return (ml.x >= X1 and ml.x <= (X1 + (X2 - X1))) and (ml.y >= Y1 and ml.y <= (Y1 + (Y2 - Y1)))
-end
---
-uis.InputBegan:Connect(function(input)
-	if keybindin and currentkeybind then
-		local character = ""
+	end)
+	 
+	main.InputEnded:connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			character = "Mouse1"
+			binding = true
+			bindinput.Text = "..."
+			tweenService:Create(round, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(255, 65, 65)}):Play()
 		end
-		if input.UserInputType == Enum.UserInputType.MouseButton2 then
-			character = "Mouse2"
-		end
-		if input.UserInputType == Enum.UserInputType.MouseButton3 then
-			character = "Mouse3"
-		end
-		local allowed = false
-		for i,v in pairs(keybindallowed) do
-			if i == character then
-				allowed = true
-				character = v
-			elseif v == character then
-				allowed = true
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			inContact = false
+			if not binding then
+				tweenService:Create(round, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(40, 40, 40)}):Play()
 			end
 		end
-		if allowed then
-			currentkeybind.value.Text = character
-			keybindin = false
-			library.enablemovement()
-			currentkeybind.button.Color = Color3.fromRGB(20,20,20)
-			currentkeybind.callback(currentkeybind.value.Text)
-			currentkeybind = nil
-		end
-	end
-	if input.UserInputType.Name == 'MouseButton1' then
-		if main[1].topbar then
-			local vals = {
-				main[1].topbar.Position.X-5;
-				main[1].topbar.Position.Y-5;
-				main[1].topbar.Position.X + main[1].topbar.Size.X+5;
-				main[1].topbar.Position.Y + main[1].topbar.Size.Y+5;
-			};
-			if mouseOver(vals) then
-				dragging = true
-				dragX,dragY = mouseLocation().X-main[1].topbar.Position.X,mouseLocation().Y-main[1].topbar.Position.Y
-			end
-		end
-		if main[1].minimise and main[1].topbar then
-			local vals = {
-				udim2.pnew(1,-15,0.5,-5,main[1].topbar).x-2;
-				udim2.pnew(1,-15,0.5,-5,main[1].topbar).y-2;
-				udim2.pnew(1,-15,0.5,-5,main[1].topbar).x + udim2.snew(0,10,0,10,main[1].topbar).x+2;
-				udim2.pnew(1,-15,0.5,-5,main[1].topbar).y + udim2.snew(0,10,0,10,main[1].topbar).y+2;
-			};
-			if mouseOver(vals) then
-				if libraryopen then
-					library.closeui()
-					libraryopen = false
-				else
-					library.openui()
-					libraryopen = true
-				end
-			end
-		end
-		for i,v in pairs(tabs) do
-			if libraryopen then
-				local vals = {
-					v.tb.Position.X;
-					v.tb.Position.Y;
-					v.tb.Position.X + v.tb.Size.X;
-					v.tb.Position.Y + v.tb.Size.Y;
-				};
-				if mouseOver(vals) then
-					if v.open then
-						for z,x in pairs(tabs) do
-							if x.open then
-								library.closetab(x.tab)	
-							end
-						end
+	end)
+	
+	inputService.InputBegan:connect(function(input)
+		if inputService:GetFocusedTextBox() then return end
+		if (input.KeyCode.Name == option.key or input.UserInputType.Name == option.key) and not binding then
+			if option.hold then
+				loop = runService.Heartbeat:connect(function()
+					if binding then
+						option.callback(true)
+						loop:Disconnect()
+						loop = nil
 					else
-						for z,x in pairs(tabs) do
-							if x.open then
-								library.closetab(x.tab)
-							end
-						end
-						library.opentab(v.tab)
+						option.callback()
 					end
+				end)
+			else
+				option.callback()
+			end
+		elseif binding then
+			local key
+			pcall(function()
+				if not keyCheck(input.KeyCode, blacklistedKeys) then
+					key = input.KeyCode
 				end
+			end)
+			pcall(function()
+				if keyCheck(input.UserInputType, whitelistedMouseinputs) and not key then
+					key = input.UserInputType
+				end
+			end)
+			key = key or option.key
+			option:SetKey(key)
+		end
+	end)
+	
+	inputService.InputEnded:connect(function(input)
+		if input.KeyCode.Name == option.key or input.UserInputType.Name == option.key or input.UserInputType.Name == "MouseMovement" then
+			if loop then
+				loop:Disconnect()
+				loop = nil
+				option.callback(true)
 			end
 		end
-		for i,v in pairs(buttons) do
-			local vals = {
-				v.button.Position.X-3;
-				v.button.Position.Y-3;
-				v.button.Position.X + v.button.Size.X+3;
-				v.button.Position.Y + v.button.Size.Y+3;
-			};
-			if mouseOver(vals) then
-				if v.open then
-					v.callback()
-					spawn(function()
-						v.button.Color = Color3.fromRGB(45, 45, 45)
-						wait(0.1)
-						v.button.Color = Color3.fromRGB(20, 20, 20)
-					end)
-				end
-			end
+	end)
+	
+	function option:SetKey(key)
+		binding = false
+		if loop then
+			loop:Disconnect()
+			loop = nil
 		end
-		for i,v in pairs(toggles) do
-			local vals = {
-				v.button.Position.X-3;
-				v.button.Position.Y-3;
-				v.button.Position.X + v.button.Size.X+3;
-				v.button.Position.Y + v.button.Size.Y+3;
-			};
-			if mouseOver(vals) then
-				if v.open then
-					local val = false
-					local col = Color3.fromRGB(20,20,20)
-					if v.enabled then
-						val = false
-						v.enabled = false
-						col = Color3.fromRGB(20,20,20)
-					else
-						val = true
-						v.enabled = true
-						col = maincolor
-					end
-					v.enabled = val
-					v.callback(val)
-					v.button.Color = col
-				end
-			end
-		end
-		for i, v in pairs(sliders) do
-			local vals = {
-				v.button.Position.X-3;
-				v.button.Position.Y-3;
-				v.button.Position.X + v.button.Size.X+3	;
-				v.button.Position.Y + v.button.Size.Y+3;
-			};
-			if v.open and mouseOver(vals) then
-				sliderhold = true
-				holdingslider = v
-				v.slider.Color = maincolor
-				local holder = holdingslider.button
-				local slide = holdingslider.slider
-				local label = holdingslider.label2
-				local max = holdingslider.max
-				local min = holdingslider.min
-				local msX = (mouseLocation().X-holder.Position.X)
-				if msX<0 then msX=0 end
-				if msX>holder.Size.X then msX=holder.Size.X end
-				slide.Size=Vector2.new(msX,slide.Size.y)
-				local calc = (max-min)/holder.Size.x
-				local result = calc * msX + min
-				label.Text = tostring(math.floor(result))
-				label.Position = udim2.pnew(1,-(label.TextBounds.x),0,-16,holder)
-				if not holdingslider.ended then
-					holdingslider.callback(math.floor(result))
-				end
-			end
-		end
-		if textboxin and currenttextbox and currenttextbox.label.Text ~= "" and currenttextbox.label.Text ~= nil then
-			textboxin = false
-			library.enablemovement()
-			currenttextbox.button.Color = Color3.fromRGB(20,20,20)
-			currenttextbox.callback(currenttextbox.label.Text)
-			currenttextbox.label.Text = currenttextbox.original
-			currenttextbox = nil
-		end
-		for i,v in pairs(textboxs) do
-			local vals = {
-				v.button.Position.X-3;
-				v.button.Position.Y-3;
-				v.button.Position.X + v.button.Size.X+3;
-				v.button.Position.Y + v.button.Size.Y+3;
-			};
-			if mouseOver(vals) and textboxin == false then
-				if v.open then
-					library.disablemovement()
-					textboxin = true
-					v.label.Text = ""
-					currenttextbox = v
-					v.button.Color = Color3.fromRGB(35, 35, 35)
-				end
-			end
-		end
-		for i,v in pairs(keybinds) do
-			local vals = {
-				v.button.Position.X-3;
-				v.button.Position.Y-3;
-				v.button.Position.X + v.button.Size.X+3;
-				v.button.Position.Y + v.button.Size.Y+3;
-			};
-			if mouseOver(vals) and textboxin == false then
-				if v.open then
-					library.disablemovement()
-					keybindin = true
-					currentkeybind = v
-					v.button.Color = Color3.fromRGB(35, 35, 35)
-				end
-			end
-		end
-		if ddenabled and ddcontent then
-			for i,v in pairs(ddcontent) do
-				local vals = {
-					v.button.Position.X-3;
-					v.button.Position.Y-3;
-					v.button.Position.X + v.button.Size.X+3;
-					v.button.Position.Y + v.button.Size.Y+3;
-				};
-				if mouseOver(vals) then
-					for z,x in pairs(dropdowns) do
-						if x.button == v.buttonpar then	
-							x.callback(v.name)
-						end
-					end
-					for i,v in pairs(ddcontent) do
-						v.button:Remove()
-						v.label:Remove()
-						for z,x in pairs(v.borders) do
-							x:Remove()
-						end
-					end
-					ddenabled = false
-					ddcontent = nil
-					break
-				end
-			end
-		end
-		for i,v in pairs(dropdowns) do
-			local vals = {
-				v.button.Position.X-3;
-				v.button.Position.Y-3;
-				v.button.Position.X + v.button.Size.X+3;
-				v.button.Position.Y + v.button.Size.Y+3;
-			};
-			if mouseOver(vals) then
-				if v.open then
-					local buttonpar = nil
-					if ddenabled and ddcontent then
-						for i,v in pairs(ddcontent) do
-							v.button:Remove()
-							v.label:Remove()
-							for z,x in pairs(v.borders) do
-								x:Remove()
-							end
-							buttonpar = v.buttonpar
-						end
-						ddenabled = false
-					end
-					if buttonpar == v.button then 
-						--
-						ddcontent = nil
-					else
-						ddcontent = nil
-						local tbl = {}
-						local count = 0
-						for ind,option in pairs(v.options) do
-							local border1 = instance.new("Frame")
-							border1.Color = Color3.fromRGB(0,0,0)
-							border1.Visible = true
-							--
-							local border2 = instance.new("Frame")
-							border2.Color = Color3.fromRGB(20,20,20)
-							border2.Visible = true
-							--
-							local border3 = instance.new("Frame")
-							border3.Color = Color3.fromRGB(0,0,0)
-							border3.Visible = true
-							--
-							local buttonframe = instance.new("Frame")
-							buttonframe.Size = udim2.snew(1,0,1,0,v.button)
-							buttonframe.Position = udim2.pnew(0,0,ind,6*ind,v.button)
-							buttonframe.Color = Color3.fromRGB(20, 20, 20)
-							buttonframe.Visible = true
-							--
-							border1.Size = udim2.snew(1,6,1,6,buttonframe)
-							border1.Position = udim2.pnew(0,-3,0,-3,buttonframe)
-							--
-							border2.Size = udim2.snew(1,4,1,4,buttonframe)
-							border2.Position = udim2.pnew(0,-2,0,-2,buttonframe)
-							--
-							border3.Size = udim2.snew(1,2,1,2,buttonframe)
-							border3.Position = udim2.pnew(0,-1,0,-1,buttonframe)
-							--
-							local label = instance.new("TextLabel")
-							label.Text = option
-							label.Size = 12
-							label.Center = true
-							label.Visible = true
-							label.Position = udim2.pnew(0.5,0,0.5,-(label.TextBounds.Y/2)-1,buttonframe)
-							local borders = {
-								border1 = border1,
-								border2 = border2,
-								border3 = border3
-							}
-							table.insert(tbl,{name = option,button = buttonframe,label = label,borders = borders,ddy = Vector2.new(ind,6*ind),buttonpar = v.button})
-						end
-						ddenabled = true
-						ddcontent = tbl
-						library.updatecursor()
-					end
-				end
-			end
-		end
-		for i,v in pairs(colorpickers) do
-			local vals = {
-				v.button.Position.X-3;
-				v.button.Position.Y-3;
-				v.button.Position.X + v.button.Size.X+3;
-				v.button.Position.Y + v.button.Size.Y+3;
-			};
-			local trans = v.transparency or false
-			if mouseOver(vals) then
-				if v.open then
-					if colorpickerenabled and currentcolorpicker == v then
-						library.closecolorpicker()
-						colorpickerenabled = false
-						currentcolorpicker = nil
-						currentcpcolor = nil
-					else
-						colorpickerenabled = true
-						currentcolorpicker = v
-						currentcolorpicker.transparency = trans
-						currentcpcolor = v.cpcolor
-						currenttransparency = v.transp
-						library.opencolorpicker({button = v.button,transparency = trans})
-					end
-				end
-			end
-		end
-		if colorpickerenabled then
-			if colorpicker.color.Visible then
-				local vals = {
-					colorpicker.color.Position.X;
-					colorpicker.color.Position.Y;
-					colorpicker.color.Position.X + colorpicker.color.Size.X;
-					colorpicker.color.Position.Y + colorpicker.color.Size.Y;
-				};
-				if mouseOver(vals) then
-					colorhold = true
-				end
-			end
-			if colorpicker.hue.Visible then
-				local vals = {
-					colorpicker.hue.Position.X;
-					colorpicker.hue.Position.Y;
-					colorpicker.hue.Position.X + colorpicker.hue.Size.X;
-					colorpicker.hue.Position.Y + colorpicker.hue.Size.Y;
-				};
-				if mouseOver(vals) then
-					huehold = true
-				end
-			end
-			if colorpicker.transparency.Visible then
-				local vals = {
-					colorpicker.transparency.Position.X;
-					colorpicker.transparency.Position.Y;
-					colorpicker.transparency.Position.X + colorpicker.transparency.Size.X;
-					colorpicker.transparency.Position.Y + colorpicker.transparency.Size.Y;
-				};
-				if mouseOver(vals) then
-					transphold = true
-				end
-			end
-		end
-	elseif input.UserInputType == Enum.UserInputType.Keyboard then
-		if input.KeyCode == Enum.KeyCode.Return then
-			if textboxin and currenttextbox then
-				textboxin = false
-				library.enablemovement()
-				currenttextbox.button.Color = Color3.fromRGB(20,20,20)
-				currenttextbox.callback(currenttextbox.label.Text)
-				currenttextbox.label.Text = currenttextbox.original
-				currenttextbox = nil
-			end
-		elseif input.KeyCode == Enum.KeyCode.Backspace then
-			if textboxin and currenttextbox then
-				currenttextbox.label.Text = currenttextbox.label.Text:gsub(".?$","")
-			end
+		self.key = key or self.key
+		self.key = self.key.Name or self.key
+		library.flags[self.flag] = self.key
+		if string.match(self.key, "Mouse") then
+			bindinput.Text = string.sub(self.key, 1, 5) .. string.sub(self.key, 12, 13)
 		else
-			if textboxin and currenttextbox then
-				local character = tostring(input.KeyCode.Name)
-				local allowed = false
-				for i,v in pairs(allowedcharacters) do
-					if i == character then
-						allowed = true
-						character = v
-					elseif v == character then
-						allowed = true
-					end
-				end
-				if currenttextbox.lower then
-					character = string.lower(character)
-				end
-				if allowed then
-					currenttextbox.label.Text = currenttextbox.label.Text..character
-				end
+			bindinput.Text = self.key
+		end
+		tweenService:Create(round, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = inContact and Color3.fromRGB(60, 60, 60) or Color3.fromRGB(40, 40, 40)}):Play()
+		round.Size = UDim2.new(0, -textService:GetTextSize(bindinput.Text, 15, Enum.Font.Gotham, Vector2.new(9e9, 9e9)).X - 16, 1, -10)	
+	end
+end
+
+local function createSlider(option, parent)
+	local main = library:Create("Frame", {
+		LayoutOrder = option.position,
+		Size = UDim2.new(1, 0, 0, 50),
+		BackgroundTransparency = 1,
+		Parent = parent.content
+	})
+	
+	local title = library:Create("TextLabel", {
+		Position = UDim2.new(0, 0, 0, 4),
+		Size = UDim2.new(1, 0, 0, 20),
+		BackgroundTransparency = 1,
+		Text = " " .. option.text,
+		TextSize = 17,
+		Font = Enum.Font.Gotham,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = main
+	})
+	
+	local slider = library:Create("ImageLabel", {
+		Position = UDim2.new(0, 10, 0, 34),
+		Size = UDim2.new(1, -20, 0, 5),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = Color3.fromRGB(30, 30, 30),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = main
+	})
+	
+	local fill = library:Create("ImageLabel", {
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = Color3.fromRGB(60, 60, 60),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = slider
+	})
+	
+	local circle = library:Create("ImageLabel", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new((option.value - option.min) / (option.max - option.min), 0, 0.5, 0),
+		SizeConstraint = Enum.SizeConstraint.RelativeYY,
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = Color3.fromRGB(60, 60, 60),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 1,
+		Parent = slider
+	})
+	
+	local valueRound = library:Create("ImageLabel", {
+		Position = UDim2.new(1, -6, 0, 4),
+		Size = UDim2.new(0, -60, 0, 18),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = Color3.fromRGB(40, 40, 40),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = main
+	})
+	
+	local inputvalue = library:Create("TextBox", {
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		Text = option.value,
+		TextColor3 = Color3.fromRGB(235, 235, 235),
+		TextSize = 15,
+		TextWrapped = true,
+		Font = Enum.Font.Gotham,
+		Parent = valueRound
+	})
+	
+	if option.min >= 0 then
+		fill.Size = UDim2.new((option.value - option.min) / (option.max - option.min), 0, 1, 0)
+	else
+		fill.Position = UDim2.new((0 - option.min) / (option.max - option.min), 0, 0, 0)
+		fill.Size = UDim2.new(option.value / (option.max - option.min), 0, 1, 0)
+	end
+	
+	local sliding
+	local inContact
+	main.InputBegan:connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			tweenService:Create(fill, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(255, 65, 65)}):Play()
+			tweenService:Create(circle, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(3.5, 0, 3.5, 0), ImageColor3 = Color3.fromRGB(255, 65, 65)}):Play()
+			sliding = true
+			option:SetValue(option.min + ((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X) * (option.max - option.min))
+		end
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			inContact = true
+			if not sliding then
+				tweenService:Create(fill, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(100, 100, 100)}):Play()
+				tweenService:Create(circle, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(2.8, 0, 2.8, 0), ImageColor3 = Color3.fromRGB(100, 100, 100)}):Play()
 			end
 		end
-		if keybindin and currentkeybind then
-			local character = tostring(input.KeyCode.Name)
-			local allowed = false
-			for i,v in pairs(keybindallowed) do
-				if i == character then
-					allowed = true
-					character = v
-				elseif v == character then
-					allowed = true
-				end
-			end
-			if allowed then
-				currentkeybind.value.Text = character
-				keybindin = false
-				library.enablemovement()
-				currentkeybind.button.Color = Color3.fromRGB(20,20,20)
-				currentkeybind.callback(currentkeybind.value.Text)
-				currentkeybind = nil
-			end
+	end)
+	
+	inputService.InputChanged:connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement and sliding then
+			option:SetValue(option.min + ((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X) * (option.max - option.min))
 		end
-	end
-end)
---
-uis.InputEnded:Connect(function(input)
-	if input.UserInputType.Name == 'MouseButton1' and sliderhold then
-		sliderhold = false
-		holdingslider.slider.Color = maincolor
-		if holdingslider.ended then
-			holdingslider.callback(holdingslider.label2.Text)
-		end
-		holdingslider = nil
-	elseif input.UserInputType.Name == 'MouseButton1' and dragging then
-		dragging = false
-	elseif input.UserInputType.Name == 'MouseButton1' and colorpickerenabled then
-		colorhold = false
-		huehold = false
-		transphold = false
-	end
-end)
---
-uis.InputChanged:Connect(function()
-	if sliderhold and holdingslider then
-		local holder = holdingslider.button
-		local slide = holdingslider.slider
-		local label = holdingslider.label2
-		local max = holdingslider.max
-		local min = holdingslider.min
-		local msX = (mouseLocation().X-holder.Position.X)
-		if msX<0 then msX=0 end
-		if msX>holder.Size.X then msX=holder.Size.X end
-		slide.Size=Vector2.new(msX,slide.Size.y)
-		local calc = (max-min)/holder.Size.x
-		local result = calc * msX + min
-		label.Text = tostring(math.floor(result))
-		label.Position = udim2.pnew(1,-(label.TextBounds.x),0,-16,holder)
-		if not holdingslider.ended then
-			holdingslider.callback(math.floor(result))
-		end
-	end
-	if colorpickerenabled and colorhold then
-		local msX = (mouseLocation().x-colorpicker.color.Position.x)/colorpicker.color.Size.x
-		local msY = (mouseLocation().y-colorpicker.color.Position.y)/colorpicker.color.Size.y
-		if msX<0 then msX=0 end
-		if msX>1 then msX=1 end
-		if msY<0 then msY=0 end
-		if msY>1 then msY=1 end
-		local toX = colorpicker.color.Size.x-(colorpicker.color.Size.x*msX)
-		local toY = colorpicker.color.Size.y-(colorpicker.color.Size.y*msY)
-		local toaddX = 0
-		local toaddY = 0
-		cx = msX
-		cy = msY
-		if toX <= colorpicker.colorcursor.Size.x then
-			toaddX = -(colorpicker.colorcursor.Size.x-toX)
-		end
-		if toY <= colorpicker.colorcursor.Size.y then
-			toaddY = -(colorpicker.colorcursor.Size.y-toY)
-		end
-		currentcpcolortable[2] = msX
-		currentcpcolortable[3] = 1-msY
-		cppos = udim2.pnew(cx,toaddX,cy,toaddY,colorpicker.color)
-		colorpicker.colorcursor.Position = cppos
-		colorpicker.colorcursor2.Position = udim2.pnew(0,1,0,1,colorpicker.colorcursor)
-		currentcolorpicker.button.Color = Color3.fromHSV(currentcpcolortable[1],currentcpcolortable[2],currentcpcolortable[3]-(0.5*currentcpcolortable[3]))
-		currentcolorpicker.color.Color = Color3.fromHSV(currentcpcolortable[1],currentcpcolortable[2],currentcpcolortable[3])
-		for i,v in pairs(colorpickers) do
-			if v.button == currentcolorpicker.button then
-				v.cpcolor = Color3.fromHSV(currentcpcolortable[1],currentcpcolortable[2],currentcpcolortable[3])
-				v.callback(currentcpcolortable)
-			end
-		end
-	end
-	if colorpickerenabled and huehold then
-		local msY = (mouseLocation().y-colorpicker.hue.Position.y)/colorpicker.hue.Size.y
-		if msY<0 then msY=0 end
-		if msY>1 then msY=1 end
-		local toY = colorpicker.hue.Size.y-(colorpicker.hue.Size.y*msY)
-		local toaddY = 0
-		cyy = msY
-		if toY <= colorpicker.huecursor.Size.y then
-			toaddY = -(colorpicker.huecursor.Size.y-toY)
-		end
-		colorpicker.huecursor.Position = udim2.pnew(0,-1,cyy,toaddY,colorpicker.hue)
-		colorpicker.huecursor2.Position = udim2.pnew(0,1,0,1,colorpicker.huecursor)
-		currentcpcolortable[1] = 1-msY
-		colorpicker.color.Color = Color3.fromHSV(currentcpcolortable[1],1,1)
-		currentcolorpicker.button.Color = Color3.fromHSV(currentcpcolortable[1],currentcpcolortable[2],currentcpcolortable[3]-(0.5*currentcpcolortable[3]))
-		currentcolorpicker.color.Color = Color3.fromHSV(currentcpcolortable[1],currentcpcolortable[2],currentcpcolortable[3])
-		for i,v in pairs(colorpickers) do
-			if v.button == currentcolorpicker.button then
-				v.cpcolor = Color3.fromHSV(currentcpcolortable[1],currentcpcolortable[2],currentcpcolortable[3])
-				v.callback(currentcpcolortable)
-			end
-		end
-	end
-	if colorpickerenabled and transphold then
-		local msX = (mouseLocation().x-colorpicker.transparency.Position.x)/colorpicker.transparency.Size.x
-		if msX<0 then msX=0 end
-		if msX>1 then msX=1 end
-		local toX = colorpicker.transparency.Size.x-(colorpicker.transparency.Size.x*msX)
-		local toaddY = 0
-		ty = msX
-		if toX <= colorpicker.transpcursor.Size.x then
-			toaddY = -(colorpicker.transpcursor.Size.x-toX)
-		end
-		colorpicker.transpcursor.Position = udim2.pnew(ty,toaddY,0,-1,colorpicker.transparency)
-		colorpicker.transpcursor2.Position = udim2.pnew(0,1,0,1,colorpicker.transpcursor)
-		currentcpcolortable[4] = msX
-		currentcolorpicker.button.Transparency = 1-currentcpcolortable[4]
-		currentcolorpicker.color.Transparency = 1-currentcpcolortable[4]
-		for i,v in pairs(colorpickers) do
-			if v.button == currentcolorpicker.button then
-				v.transp = currentcpcolortable[4]
-				v.callback(currentcpcolortable)
-			end
-		end
-	end
-	if dragging then
-		local msX,msY = mouseLocation().X-dragX,mouseLocation().Y-dragY
-		if msX <= 8 then 
-			msX = 8 
-		elseif msX >= cc.ViewportSize.x-(main[1].frame.Size.x+8) then 
-			msX = cc.ViewportSize.x-(main[1].frame.Size.x+8)
-		end
-		if msY <= 8 then 
-			msY = 8 
-		elseif msY >= cc.ViewportSize.y-(main[1].frame.Size.y+8) then 
-			msY = cc.ViewportSize.y-(main[1].frame.Size.y+8)
-		end
-		main[1].frame.Position = Vector2.new(msX,msY)
-		main[1].borders.mainui.border3.Position = udim2.pnew(0,-5,0,-5,main[1].frame)
-		main[1].borders.mainui.border2.Position = udim2.pnew(0,-4,0,-4,main[1].frame)
-		main[1].borders.mainui.border1.Position = udim2.pnew(0,-1,0,-1,main[1].frame)
-		main[1].topbar.Position = Vector2.new(msX,msY)
-		main[1].borders.topbar.border4.Position = udim2.pnew(0,0,1,0,main[1].topbar)
-		main[1].borders.topbar.border5.Position = udim2.pnew(0,0,1,0,main[1].borders.topbar.border4)
-		main[1].borders.topbar.border6.Position = udim2.pnew(0,0,1,0,main[1].borders.topbar.border5)
-		main[1].label.Position = udim2.pnew(0,5,0.5,-(main[1].label.TextBounds.Y/2),main[1].topbar)
-		main[1].minimise.Position = udim2.pnew(1,-15,0.5,-1,main[1].topbar)
-		main[1].tabbar.Position = udim2.pnew(0,0,1,4,main[1].topbar)
-		main[1].borders.tabbar.border7.Position = udim2.pnew(0,0,1,0,main[1].tabbar)
-		main[1].borders.tabbar.border8.Position = udim2.pnew(0,0,1,0,main[1].borders.tabbar.border7)
-		main[1].borders.tabbar.border9.Position = udim2.pnew(0,0,1,0,main[1].borders.tabbar.border8)
-		--
-		for i,v in pairs(tabs) do
-			v.tb.Position = udim2.pnew(0,v.tby,0,0,main[1].tabbar)
-			v.tbtext.Position = udim2.pnew(0.5,0,0.5,-(v.tbtext.TextBounds.y/2),v.tb)
-			v.tbborder.Position = udim2.pnew(1,0,0,0,v.tb)
-			v.tab.Position = udim2.pnew(0,0,0,43,main[1].frame)
-		end
-		--
-		for i,v in pairs(sections) do
-			local x = 0
-			if v.side == "left" then x = 10 else x = 165 end
-			v.section.Position = udim2.pnew(0,x,0,10+v.sy,v.tab)
-			v.borders.border3.Position = udim2.pnew(0,-4,0,-4,v.section)
-			v.borders.border2.Position = udim2.pnew(0,-3,0,-3,v.section)
-			v.borders.border1.Position = udim2.pnew(0,-1,0,-1,v.section)
-			v.label.Position = udim2.pnew(0.5,0,0,-(v.label.TextBounds.Y/2),v.borders.border2)
-		end
-		--
-		for i,v in pairs(buttons) do
-			v.button.Position = udim2.pnew(0.5,-(v.button.Size.x/2),0,v.yb,v.section)
-			v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-			v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-			v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-			v.label.Position = udim2.pnew(0.5,0,0.5,-(v.label.TextBounds.Y/2)-1,v.button)
-		end
-		for i,v in pairs(toggles) do
-			v.button.Position = udim2.pnew(0.1,-(v.button.Size.x/2+1),0,v.ty,v.section)
-			v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-			v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-			v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-			v.label.Position = udim2.pnew(1,7,0.5,-(v.label.TextBounds.Y/2)-1,v.button)
-		end
-		for i,v in pairs(sliders) do
-			v.button.Position = udim2.pnew(0.5,-(v.button.Size.x/2),0,v.sy+10,v.section)
-			v.slider.Position = udim2.pnew(0,0,0,0,v.button)
-			v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-			v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-			v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-			v.label.Position = udim2.pnew(0,0,0,-16,v.button)
-			v.label2.Position = udim2.pnew(1,-(v.label2.TextBounds.x),0,-16,v.button)
-		end
-		for i,v in pairs(textboxs) do
-			v.button.Position = udim2.pnew(0.5,-(v.button.Size.x/2),0,v.ty,v.section)
-			v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-			v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-			v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-			v.label.Position = udim2.pnew(0.5,0,0.5,-(v.label.TextBounds.Y/2)-1,v.button)
-		end
-		for i,v in pairs(keybinds) do
-			v.button.Position = udim2.pnew(1,-(v.button.Size.x)-7,0,v.ky,v.section)
-			v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-			v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-			v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-			v.label.Position = udim2.pnew(-5.3,0,0.5,-(v.label.TextBounds.Y/2)-1,v.button)
-			v.value.Position = udim2.pnew(0.5,0,0.5,-(v.value.TextBounds.Y/2)-1,v.button)
-		end
-		for i,v in pairs(dropdowns) do
-			v.button.Position = udim2.pnew(0.5,-(v.button.Size.x/2),0,v.yb,v.section)
-			v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-			v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-			v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-			v.label.Position = udim2.pnew(0.5,0,0.5,-(v.label.TextBounds.Y/2)-1,v.button)
-			v.line.Position = udim2.pnew(1,-12.5,0.5,-0.5,v.button)
-			if ddenabled and ddcontent then
-				for i,v in pairs(ddcontent) do
-					v.button.Position = udim2.pnew(0,0,v.ddy.x,v.ddy.y,v.buttonpar)
-					v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-					v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-					v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-					v.label.Position = udim2.pnew(0.5,0,0.5,-(v.label.TextBounds.Y/2)-1,v.button)
-				end
-			end
-		end
-		for i,v in pairs(colorpickers) do
-			v.button.Position = udim2.pnew(1,-(v.button.Size.x)-7,0,v.ky,v.section)
-			v.color.Position = udim2.pnew(0.5,-(v.color.Size.x/2),0.5,-(v.color.Size.y/2),v.button)
-			v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-			v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-			v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-			v.label.Position = udim2.pnew(-5.3,0,0.5,-(v.label.TextBounds.Y/2)-1,v.button)
-		end
-		library.movecolorpicker()
-	end
-end)
---
-rs.RenderStepped:Connect(function()
-	if cursor ~= nil then
-		if main[1] and main[1].frame then
-			local vals = ""
-			local vals2 = ""
-			if main[1].frame.Visible then
-				vals = {
-					main[1].frame.Position.X-5;
-					main[1].frame.Position.Y-5;
-					main[1].frame.Position.X + main[1].frame.Size.X+5;
-					main[1].frame.Position.Y + main[1].frame.Size.Y+5;
-				};
+	end)
+
+	main.InputEnded:connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			sliding = false
+			if inContact then
+				tweenService:Create(fill, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(100, 100, 100)}):Play()
+				tweenService:Create(circle, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(2.8, 0, 2.8, 0), ImageColor3 = Color3.fromRGB(100, 100, 100)}):Play()
 			else
-				vals = {
-					main[1].topbar.Position.X-5;
-					main[1].topbar.Position.Y-5;
-					main[1].topbar.Position.X + main[1].topbar.Size.X+5;
-					main[1].topbar.Position.Y + main[1].topbar.Size.Y+5;
-				};
+				tweenService:Create(fill, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(60, 60, 60)}):Play()
+				tweenService:Create(circle, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 0, 0, 0), ImageColor3 = Color3.fromRGB(60, 60, 60)}):Play()
 			end
-			local found = false
-			if mouseOver(vals) then
-				cursorenabled = true
-				local ml = mouseLocation()
-				local x,y = cursor.Size.x/2,cursor.Size.y/2
-				local calc = Vector2.new(ml.x-x,ml.y-y)
-				cursor.Visible = true
-				cursor.Position = calc
-				found = true
-			elseif ddenabled and ddcontent then
-				for i,v in pairs(ddcontent) do
-					local vals = {
-						v.button.Position.X-3;
-						v.button.Position.Y-3;
-						v.button.Position.X + v.button.Size.X+3;
-						v.button.Position.Y + v.button.Size.Y+3;
-					};
-					if mouseOver(vals) then
-						cursorenabled = true
-						local ml = mouseLocation()
-						local x,y = cursor.Size.x/2,cursor.Size.y/2
-						local calc = Vector2.new(ml.x-x,ml.y-y)
-						cursor.Visible = true
-						cursor.Position = calc
-						found = true
-					end
-				end
-			elseif colorpickerenabled and currentcolorpicker then
-				local vals = {
-					colorpicker.frame.Position.X-5;
-					colorpicker.frame.Position.Y-5;
-					colorpicker.frame.Position.X + colorpicker.frame.Size.X+5;
-					colorpicker.frame.Position.Y + colorpicker.frame.Size.Y+5;
-				};
-				if mouseOver(vals) then
-					cursorenabled = true
-					local ml = mouseLocation()
-					local x,y = cursor.Size.x/2,cursor.Size.y/2
-					local calc = Vector2.new(ml.x-x,ml.y-y)
-					cursor.Visible = true
-					cursor.Position = calc
-					found = true
+		end
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			inContact = false
+			inputvalue:ReleaseFocus()
+			if not sliding then
+				tweenService:Create(fill, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(60, 60, 60)}):Play()
+				tweenService:Create(circle, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 0, 0, 0), ImageColor3 = Color3.fromRGB(60, 60, 60)}):Play()
+			end
+		end
+	end)
+
+	inputvalue.FocusLost:connect(function()
+		tweenService:Create(circle, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 0, 0, 0), ImageColor3 = Color3.fromRGB(60, 60, 60)}):Play()
+		option:SetValue(tonumber(inputvalue.Text) or option.value)
+	end)
+
+	function option:SetValue(value)
+		value = round(value, option.float)
+		value = math.clamp(value, self.min, self.max)
+		circle:TweenPosition(UDim2.new((value - self.min) / (self.max - self.min), 0, 0.5, 0), "Out", "Quad", 0.1, true)
+		if self.min >= 0 then
+			fill:TweenSize(UDim2.new((value - self.min) / (self.max - self.min), 0, 1, 0), "Out", "Quad", 0.1, true)
+		else
+			fill:TweenPosition(UDim2.new((0 - self.min) / (self.max - self.min), 0, 0, 0), "Out", "Quad", 0.1, true)
+			fill:TweenSize(UDim2.new(value / (self.max - self.min), 0, 1, 0), "Out", "Quad", 0.1, true)
+		end
+		library.flags[self.flag] = value
+		self.value = value
+		inputvalue.Text = value
+		self.callback(value)
+	end
+end
+
+local function createList(option, parent, holder)
+	local valueCount = 0
+	
+	local main = library:Create("Frame", {
+		LayoutOrder = option.position,
+		Size = UDim2.new(1, 0, 0, 52),
+		BackgroundTransparency = 1,
+		Parent = parent.content
+	})
+	
+	local round = library:Create("ImageLabel", {
+		Position = UDim2.new(0, 6, 0, 4),
+		Size = UDim2.new(1, -12, 1, -10),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = Color3.fromRGB(40, 40, 40),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = main
+	})
+	
+	local title = library:Create("TextLabel", {
+		Position = UDim2.new(0, 12, 0, 8),
+		Size = UDim2.new(1, -24, 0, 14),
+		BackgroundTransparency = 1,
+		Text = option.text,
+		TextSize = 14,
+		Font = Enum.Font.GothamBold,
+		TextColor3 = Color3.fromRGB(140, 140, 140),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = main
+	})
+	
+	local listvalue = library:Create("TextLabel", {
+		Position = UDim2.new(0, 12, 0, 20),
+		Size = UDim2.new(1, -24, 0, 24),
+		BackgroundTransparency = 1,
+		Text = option.value,
+		TextSize = 18,
+		Font = Enum.Font.Gotham,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = main
+	})
+	
+	library:Create("ImageLabel", {
+		Position = UDim2.new(1, -16, 0, 16),
+		Size = UDim2.new(-1, 32, 1, -32),
+		SizeConstraint = Enum.SizeConstraint.RelativeYY,
+		Rotation = 90,
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://4918373417",
+		ImageColor3 = Color3.fromRGB(140, 140, 140),
+		ScaleType = Enum.ScaleType.Fit,
+		Parent = round
+	})
+	
+	option.mainHolder = library:Create("ImageButton", {
+		ZIndex = 3,
+		Size = UDim2.new(0, 240, 0, 52),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageTransparency = 1,
+		ImageColor3 = Color3.fromRGB(30, 30, 30),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Visible = false,
+		Parent = library.base
+	})
+	
+	local content = library:Create("ScrollingFrame", {
+		ZIndex = 3,
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarImageColor3 = Color3.fromRGB(),
+		ScrollBarThickness = 0,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		Parent = option.mainHolder
+	})
+	
+	library:Create("UIPadding", {
+		PaddingTop = UDim.new(0, 6),
+		Parent = content
+	})
+	
+	local layout = library:Create("UIListLayout", {
+		Parent = content
+	})
+	
+	layout.Changed:connect(function()
+		option.mainHolder.Size = UDim2.new(0, 240, 0, (valueCount > 4 and (4 * 40) or layout.AbsoluteContentSize.Y) + 12)
+		content.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 12)
+	end)
+	
+	local inContact
+	round.InputBegan:connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			if library.activePopup then
+				library.activePopup:Close()
+			end
+			local position = main.AbsolutePosition
+			option.mainHolder.Position = UDim2.new(0, position.X - 5, 0, position.Y - 10)
+			option.open = true
+			option.mainHolder.Visible = true
+			library.activePopup = option
+			content.ScrollBarThickness = 6
+			tweenService:Create(option.mainHolder, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = 0, Position = UDim2.new(0, position.X - 5, 0, position.Y - 4)}):Play()
+			tweenService:Create(option.mainHolder, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 0.1), {Position = UDim2.new(0, position.X - 5, 0, position.Y + 1)}):Play()
+			for _,label in next, content:GetChildren() do
+				if label:IsA"TextLabel" then
+					tweenService:Create(label, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0, TextTransparency = 0}):Play()
 				end
 			end
-			if found then
-				if mousedisable then 
-					uis.MouseIconEnabled = false
+		end
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			inContact = true
+			if not option.open then
+				tweenService:Create(round, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(60, 60, 60)}):Play()
+			end
+		end
+	end)
+	
+	round.InputEnded:connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			inContact = false
+			if not option.open then
+				tweenService:Create(round, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(40, 40, 40)}):Play()
+			end
+		end
+	end)
+	
+	function option:AddValue(value)
+		valueCount = valueCount + 1
+		local label = library:Create("TextLabel", {
+			ZIndex = 3,
+			Size = UDim2.new(1, 0, 0, 40),
+			BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+			BorderSizePixel = 0,
+			Text = "    " .. value,
+			TextSize = 14,
+			TextTransparency = self.open and 0 or 1,
+			Font = Enum.Font.Gotham,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Parent = content
+		})
+		
+		local inContact
+		local clicking
+		label.InputBegan:connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				clicking = true
+				tweenService:Create(label, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(10, 10, 10)}):Play()
+				self:SetValue(value)
+			end
+			if input.UserInputType == Enum.UserInputType.MouseMovement then
+				inContact = true
+				if not clicking then
+					tweenService:Create(label, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(20, 20, 20)}):Play()
 				end
+			end
+		end)
+		
+		label.InputEnded:connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				clicking = false
+				tweenService:Create(label, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = inContact and Color3.fromRGB(20, 20, 20) or Color3.fromRGB(30, 30, 30)}):Play()
+			end
+			if input.UserInputType == Enum.UserInputType.MouseMovement then
+				inContact = false
+				if not clicking then
+					tweenService:Create(label, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(30, 30, 30)}):Play()
+				end
+			end
+		end)
+	end
+
+	if not table.find(option.values, option.value) then
+		option:AddValue(option.value)
+	end
+	
+	for _, value in next, option.values do
+		option:AddValue(tostring(value))
+	end
+	
+	function option:RemoveValue(value)
+		for _,label in next, content:GetChildren() do
+			if label:IsA"TextLabel" and label.Text == "	" .. value then
+				label:Destroy()
+				valueCount = valueCount - 1
+				break
+			end
+		end
+		if self.value == value then
+			self:SetValue("")
+		end
+	end
+	
+	function option:SetValue(value)
+		library.flags[self.flag] = tostring(value)
+		self.value = tostring(value)
+		listvalue.Text = self.value
+		self.callback(value)
+	end
+	
+	function option:Close()
+		library.activePopup = nil
+		self.open = false
+		content.ScrollBarThickness = 0
+		local position = main.AbsolutePosition
+		tweenService:Create(round, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = inContact and Color3.fromRGB(60, 60, 60) or Color3.fromRGB(40, 40, 40)}):Play()
+		tweenService:Create(self.mainHolder, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 1, Position = UDim2.new(0, position.X - 5, 0, position.Y -10)}):Play()
+		for _,label in next, content:GetChildren() do
+			if label:IsA"TextLabel" then
+				tweenService:Create(label, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1, TextTransparency = 1}):Play()
+			end
+		end
+		wait(0.3)
+		--delay(0.3, function()
+			if not self.open then
+				self.mainHolder.Visible = false
+			end
+		--end)
+	end
+
+	return option
+end
+
+local function createBox(option, parent)
+	local main = library:Create("Frame", {
+		LayoutOrder = option.position,
+		Size = UDim2.new(1, 0, 0, 52),
+		BackgroundTransparency = 1,
+		Parent = parent.content
+	})
+	
+	local outline = library:Create("ImageLabel", {
+		Position = UDim2.new(0, 6, 0, 4),
+		Size = UDim2.new(1, -12, 1, -10),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = Color3.fromRGB(60, 60, 60),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = main
+	})
+	
+	local round = library:Create("ImageLabel", {
+		Position = UDim2.new(0, 8, 0, 6),
+		Size = UDim2.new(1, -16, 1, -14),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = Color3.fromRGB(20, 20, 20),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.01,
+		Parent = main
+	})
+	
+	local title = library:Create("TextLabel", {
+		Position = UDim2.new(0, 12, 0, 8),
+		Size = UDim2.new(1, -24, 0, 14),
+		BackgroundTransparency = 1,
+		Text = option.text,
+		TextSize = 14,
+		Font = Enum.Font.GothamBold,
+		TextColor3 = Color3.fromRGB(100, 100, 100),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = main
+	})
+	
+	local inputvalue = library:Create("TextBox", {
+		Position = UDim2.new(0, 12, 0, 20),
+		Size = UDim2.new(1, -24, 0, 24),
+		BackgroundTransparency = 1,
+		Text = option.value,
+		TextSize = 18,
+		Font = Enum.Font.Gotham,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextWrapped = true,
+		Parent = main
+	})
+	
+	local inContact
+	local focused
+	main.InputBegan:connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			if not focused then inputvalue:CaptureFocus() end
+		end
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			inContact = true
+			if not focused then
+				tweenService:Create(outline, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(100, 100, 100)}):Play()
+			end
+		end
+	end)
+	
+	main.InputEnded:connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			inContact = false
+			if not focused then
+				tweenService:Create(outline, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(60, 60, 60)}):Play()
+			end
+		end
+	end)
+	
+	inputvalue.Focused:connect(function()
+		focused = true
+		tweenService:Create(outline, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(255, 65, 65)}):Play()
+	end)
+	
+	inputvalue.FocusLost:connect(function(enter)
+		focused = false
+		tweenService:Create(outline, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(60, 60, 60)}):Play()
+		option:SetValue(inputvalue.Text, enter)
+	end)
+	
+	function option:SetValue(value, enter)
+		library.flags[self.flag] = tostring(value)
+		self.value = tostring(value)
+		inputvalue.Text = self.value
+		self.callback(value, enter)
+	end
+end
+
+local function createColorPickerWindow(option)
+	option.mainHolder = library:Create("ImageButton", {
+		ZIndex = 3,
+		Size = UDim2.new(0, 240, 0, 180),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageTransparency = 1,
+		ImageColor3 = Color3.fromRGB(30, 30, 30),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = library.base
+	})
+		
+	local hue, sat, val = Color3.toHSV(option.color)
+	hue, sat, val = hue == 0 and 1 or hue, sat + 0.005, val - 0.005
+	local editinghue
+	local editingsatval
+	local currentColor = option.color
+	local previousColors = {[1] = option.color}
+	local originalColor = option.color
+	local rainbowEnabled
+	local rainbowLoop
+	
+	function option:updateVisuals(Color)
+		currentColor = Color
+		self.visualize2.ImageColor3 = Color
+		hue, sat, val = Color3.toHSV(Color)
+		hue = hue == 0 and 1 or hue
+		self.satval.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
+		self.hueSlider.Position = UDim2.new(1 - hue, 0, 0, 0)
+		self.satvalSlider.Position = UDim2.new(sat, 0, 1 - val, 0)
+	end
+	
+	option.hue = library:Create("ImageLabel", {
+		ZIndex = 3,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 8, 1, -8),
+		Size = UDim2.new(1, -100, 0, 22),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageTransparency = 1,
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = option.mainHolder
+	})
+	
+	local Gradient = library:Create("UIGradient", {
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+			ColorSequenceKeypoint.new(0.157, Color3.fromRGB(255, 0, 255)),
+			ColorSequenceKeypoint.new(0.323, Color3.fromRGB(0, 0, 255)),
+			ColorSequenceKeypoint.new(0.488, Color3.fromRGB(0, 255, 255)),
+			ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 255, 0)),
+			ColorSequenceKeypoint.new(0.817, Color3.fromRGB(255, 255, 0)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0)),
+		}),
+		Parent = option.hue
+	})
+	
+	option.hueSlider = library:Create("Frame", {
+		ZIndex = 3,
+		Position = UDim2.new(1 - hue, 0, 0, 0),
+		Size = UDim2.new(0, 2, 1, 0),
+		BackgroundTransparency = 1,
+		BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+		BorderColor3 = Color3.fromRGB(255, 255, 255),
+		Parent = option.hue
+	})
+	
+	option.hue.InputBegan:connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+			editinghue = true
+			X = (option.hue.AbsolutePosition.X + option.hue.AbsoluteSize.X) - option.hue.AbsolutePosition.X
+			X = (Input.Position.X - option.hue.AbsolutePosition.X) / X
+			X = X < 0 and 0 or X > 0.995 and 0.995 or X
+			option:updateVisuals(Color3.fromHSV(1 - X, sat, val))
+		end
+	end)
+	
+	inputService.InputChanged:connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseMovement and editinghue then
+			X = (option.hue.AbsolutePosition.X + option.hue.AbsoluteSize.X) - option.hue.AbsolutePosition.X
+			X = (Input.Position.X - option.hue.AbsolutePosition.X) / X
+			X = X <= 0 and 0 or X >= 0.995 and 0.995 or X
+			option:updateVisuals(Color3.fromHSV(1 - X, sat, val))
+		end
+	end)
+	
+	option.hue.InputEnded:connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+			editinghue = false
+		end
+	end)
+	
+	option.satval = library:Create("ImageLabel", {
+		ZIndex = 3,
+		Position = UDim2.new(0, 8, 0, 8),
+		Size = UDim2.new(1, -100, 1, -42),
+		BackgroundTransparency = 1,
+		BackgroundColor3 = Color3.fromHSV(hue, 1, 1),
+		BorderSizePixel = 0,
+		Image = "rbxassetid://4155801252",
+		ImageTransparency = 1,
+		ClipsDescendants = true,
+		Parent = option.mainHolder
+	})
+	
+	option.satvalSlider = library:Create("Frame", {
+		ZIndex = 3,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(sat, 0, 1 - val, 0),
+		Size = UDim2.new(0, 4, 0, 4),
+		Rotation = 45,
+		BackgroundTransparency = 1,
+		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+		Parent = option.satval
+	})
+	
+	option.satval.InputBegan:connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+			editingsatval = true
+			X = (option.satval.AbsolutePosition.X + option.satval.AbsoluteSize.X) - option.satval.AbsolutePosition.X
+			Y = (option.satval.AbsolutePosition.Y + option.satval.AbsoluteSize.Y) - option.satval.AbsolutePosition.Y
+			X = (Input.Position.X - option.satval.AbsolutePosition.X) / X
+			Y = (Input.Position.Y - option.satval.AbsolutePosition.Y) / Y
+			X = X <= 0.005 and 0.005 or X >= 1 and 1 or X
+			Y = Y <= 0 and 0 or Y >= 0.995 and 0.995 or Y
+			option:updateVisuals(Color3.fromHSV(hue, X, 1 - Y))
+		end
+	end)
+	
+	inputService.InputChanged:connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseMovement and editingsatval then
+			X = (option.satval.AbsolutePosition.X + option.satval.AbsoluteSize.X) - option.satval.AbsolutePosition.X
+			Y = (option.satval.AbsolutePosition.Y + option.satval.AbsoluteSize.Y) - option.satval.AbsolutePosition.Y
+			X = (Input.Position.X - option.satval.AbsolutePosition.X) / X
+			Y = (Input.Position.Y - option.satval.AbsolutePosition.Y) / Y
+			X = X <= 0.005 and 0.005 or X >= 1 and 1 or X
+			Y = Y <= 0 and 0 or Y >= 0.995 and 0.995 or Y
+			option:updateVisuals(Color3.fromHSV(hue, X, 1 - Y))
+		end
+	end)
+	
+	option.satval.InputEnded:connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+			editingsatval = false
+		end
+	end)
+	
+	option.visualize2 = library:Create("ImageLabel", {
+		ZIndex = 3,
+		Position = UDim2.new(1, -8, 0, 8),
+		Size = UDim2.new(0, -80, 0, 80),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = currentColor,
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = option.mainHolder
+	})
+	
+	option.resetColor = library:Create("ImageLabel", {
+		ZIndex = 3,
+		Position = UDim2.new(1, -8, 0, 92),
+		Size = UDim2.new(0, -80, 0, 18),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageTransparency = 1,
+		ImageColor3 = Color3.fromRGB(20, 20, 20),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = option.mainHolder
+	})
+	
+	option.resetText = library:Create("TextLabel", {
+		ZIndex = 3,
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		Text = "Reset",
+		TextTransparency = 1,
+		Font = Enum.Font.Code,
+		TextSize = 15,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		Parent = option.resetColor
+	})
+	
+	option.resetColor.InputBegan:connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 and not rainbowEnabled then
+			previousColors = {originalColor}
+			option:SetColor(originalColor)
+		end
+		if Input.UserInputType == Enum.UserInputType.MouseMovement and not dragging then
+			tweenService:Create(option.resetColor, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(10, 10, 10)}):Play()
+		end
+	end)
+	
+	option.resetColor.InputEnded:connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseMovement and not dragging then
+			tweenService:Create(option.resetColor, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(20, 20, 20)}):Play()
+		end
+	end)
+	
+	option.undoColor = library:Create("ImageLabel", {
+		ZIndex = 3,
+		Position = UDim2.new(1, -8, 0, 112),
+		Size = UDim2.new(0, -80, 0, 18),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageTransparency = 1,
+		ImageColor3 = Color3.fromRGB(20, 20, 20),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = option.mainHolder
+	})
+	
+	option.undoText = library:Create("TextLabel", {
+		ZIndex = 3,
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		Text = "Undo",
+		TextTransparency = 1,
+		Font = Enum.Font.Code,
+		TextSize = 15,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		Parent = option.undoColor
+	})
+	
+	option.undoColor.InputBegan:connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 and not rainbowEnabled then
+			local Num = #previousColors == 1 and 0 or 1
+			option:SetColor(previousColors[#previousColors - Num])
+			if #previousColors ~= 1 then
+				table.remove(previousColors, #previousColors)
+			end
+		end
+		if Input.UserInputType == Enum.UserInputType.MouseMovement and not dragging then
+			tweenService:Create(option.undoColor, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(10, 10, 10)}):Play()
+		end
+	end)
+	
+	option.undoColor.InputEnded:connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseMovement and not dragging then
+			tweenService:Create(option.undoColor, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(20, 20, 20)}):Play()
+		end
+	end)
+	
+	option.setColor = library:Create("ImageLabel", {
+		ZIndex = 3,
+		Position = UDim2.new(1, -8, 0, 132),
+		Size = UDim2.new(0, -80, 0, 18),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageTransparency = 1,
+		ImageColor3 = Color3.fromRGB(20, 20, 20),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = option.mainHolder
+	})
+	
+	option.setText = library:Create("TextLabel", {
+		ZIndex = 3,
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		Text = "Set",
+		TextTransparency = 1,
+		Font = Enum.Font.Code,
+		TextSize = 15,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		Parent = option.setColor
+	})
+	
+	option.setColor.InputBegan:connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 and not rainbowEnabled then
+			table.insert(previousColors, currentColor)
+			option:SetColor(currentColor)
+		end
+		if Input.UserInputType == Enum.UserInputType.MouseMovement and not dragging then
+			tweenService:Create(option.setColor, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(10, 10, 10)}):Play()
+		end
+	end)
+	
+	option.setColor.InputEnded:connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseMovement and not dragging then
+			tweenService:Create(option.setColor, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(20, 20, 20)}):Play()
+		end
+	end)
+	
+	option.rainbow = library:Create("ImageLabel", {
+		ZIndex = 3,
+		Position = UDim2.new(1, -8, 0, 152),
+		Size = UDim2.new(0, -80, 0, 18),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageTransparency = 1,
+		ImageColor3 = Color3.fromRGB(20, 20, 20),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = option.mainHolder
+	})
+	
+	option.rainbowText = library:Create("TextLabel", {
+		ZIndex = 3,
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		Text = "Rainbow",
+		TextTransparency = 1,
+		Font = Enum.Font.Code,
+		TextSize = 15,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		Parent = option.rainbow
+	})
+	
+	option.rainbow.InputBegan:connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+			rainbowEnabled = not rainbowEnabled
+			if rainbowEnabled then
+				rainbowLoop = runService.Heartbeat:connect(function()
+					option:SetColor(chromaColor)
+					option.rainbowText.TextColor3 = chromaColor
+				end)
 			else
-				if mousedisable then 
-					uis.MouseIconEnabled = true
-				end
-				cursorenabled = false
+				rainbowLoop:Disconnect()
+				option:SetColor(previousColors[#previousColors])
+				option.rainbowText.TextColor3 = Color3.fromRGB(255, 255, 255)
 			end
 		end
-	end
-	if cc.ViewportSize.x < currentccx or cc.ViewportSize.x > currentccx then
-		currentccx = cc.ViewportSize.x
-		local msX,msY = udim2.pnew(0.5,8-(main[1].frame.Size.x/2),0.5,8-(main[1].frame.Size.y/2)).x,udim2.pnew(0.5,8-(main[1].frame.Size.x/2),0.5,8-(main[1].frame.Size.y/2)).y
-		main[1].frame.Position = Vector2.new(msX,msY)
-		main[1].borders.mainui.border3.Position = udim2.pnew(0,-5,0,-5,main[1].frame)
-		main[1].borders.mainui.border2.Position = udim2.pnew(0,-4,0,-4,main[1].frame)
-		main[1].borders.mainui.border1.Position = udim2.pnew(0,-1,0,-1,main[1].frame)
-		main[1].topbar.Position = Vector2.new(msX,msY)
-		main[1].borders.topbar.border4.Position = udim2.pnew(0,0,1,0,main[1].topbar)
-		main[1].borders.topbar.border5.Position = udim2.pnew(0,0,1,0,main[1].borders.topbar.border4)
-		main[1].borders.topbar.border6.Position = udim2.pnew(0,0,1,0,main[1].borders.topbar.border5)
-		main[1].label.Position = udim2.pnew(0,5,0.5,-(main[1].label.TextBounds.Y/2),main[1].topbar)
-		main[1].minimise.Position = udim2.pnew(1,-15,0.5,-1,main[1].topbar)
-		main[1].tabbar.Position = udim2.pnew(0,0,1,4,main[1].topbar)
-		main[1].borders.tabbar.border7.Position = udim2.pnew(0,0,1,0,main[1].tabbar)
-		main[1].borders.tabbar.border8.Position = udim2.pnew(0,0,1,0,main[1].borders.tabbar.border7)
-		main[1].borders.tabbar.border9.Position = udim2.pnew(0,0,1,0,main[1].borders.tabbar.border8)
-		--
-		for i,v in pairs(tabs) do
-			v.tb.Position = udim2.pnew(0,v.tby,0,0,main[1].tabbar)
-			v.tbtext.Position = udim2.pnew(0.5,0,0.5,-(v.tbtext.TextBounds.y/2),v.tb)
-			v.tbborder.Position = udim2.pnew(1,0,0,0,v.tb)
-			v.tab.Position = udim2.pnew(0,0,0,43,main[1].frame)
+		if Input.UserInputType == Enum.UserInputType.MouseMovement and not dragging then
+			tweenService:Create(option.rainbow, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(10, 10, 10)}):Play()
 		end
-		--
-		for i,v in pairs(sections) do
-			local x = 0
-			if v.side == "left" then x = 10 else x = 165 end
-			v.section.Position = udim2.pnew(0,x,0,10+v.sy,v.tab)
-			v.borders.border3.Position = udim2.pnew(0,-4,0,-4,v.section)
-			v.borders.border2.Position = udim2.pnew(0,-3,0,-3,v.section)
-			v.borders.border1.Position = udim2.pnew(0,-1,0,-1,v.section)
-			v.label.Position = udim2.pnew(0.5,0,0,-(v.label.TextBounds.Y/2),v.borders.border2)
+	end)
+	
+	option.rainbow.InputEnded:connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseMovement and not dragging then
+			tweenService:Create(option.rainbow, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(20, 20, 20)}):Play()
 		end
-		--
-		for i,v in pairs(buttons) do
-			v.button.Position = udim2.pnew(0.5,-(v.button.Size.x/2),0,v.yb,v.section)
-			v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-			v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-			v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-			v.label.Position = udim2.pnew(0.5,0,0.5,-(v.label.TextBounds.Y/2)-1,v.button)
-		end
-		for i,v in pairs(toggles) do
-			v.button.Position = udim2.pnew(0.1,-(v.button.Size.x/2+1),0,v.ty,v.section)
-			v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-			v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-			v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-			v.label.Position = udim2.pnew(1,7,0.5,-(v.label.TextBounds.Y/2)-1,v.button)
-		end
-		for i,v in pairs(sliders) do
-			v.button.Position = udim2.pnew(0.5,-(v.button.Size.x/2),0,v.sy+10,v.section)
-			v.slider.Position = udim2.pnew(0,0,0,0,v.button)
-			v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-			v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-			v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-			v.label.Position = udim2.pnew(0,0,0,-16,v.button)
-			v.label2.Position = udim2.pnew(1,-(v.label2.TextBounds.x),0,-16,v.button)
-		end
-		for i,v in pairs(textboxs) do
-			v.button.Position = udim2.pnew(0.5,-(v.button.Size.x/2),0,v.ty,v.section)
-			v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-			v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-			v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-			v.label.Position = udim2.pnew(0.5,0,0.5,-(v.label.TextBounds.Y/2)-1,v.button)
-		end
-		for i,v in pairs(keybinds) do
-			v.button.Position = udim2.pnew(1,-(v.button.Size.x)-7,0,v.ky,v.section)
-			v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-			v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-			v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-			v.label.Position = udim2.pnew(-5.3,0,0.5,-(v.label.TextBounds.Y/2)-1,v.button)
-			v.value.Position = udim2.pnew(0.5,0,0.5,-(v.value.TextBounds.Y/2)-1,v.button)
-		end
-		for i,v in pairs(dropdowns) do
-			v.button.Position = udim2.pnew(0.5,-(v.button.Size.x/2),0,v.yb,v.section)
-			v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-			v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-			v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-			v.label.Position = udim2.pnew(0.5,0,0.5,-(v.label.TextBounds.Y/2)-1,v.button)
-			v.line.Position = udim2.pnew(1,-12.5,0.5,-0.5,v.button)
-			if ddenabled and ddcontent then
-				for i,v in pairs(ddcontent) do
-					v.button.Position = udim2.pnew(0,0,v.ddy.x,v.ddy.y,v.buttonpar)
-					v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-					v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-					v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-					v.label.Position = udim2.pnew(0.5,0,0.5,-(v.label.TextBounds.Y/2)-1,v.button)
+	end)
+	
+	return option
+end
+
+local function createColor(option, parent, holder)
+	option.main = library:Create("TextLabel", {
+		LayoutOrder = option.position,
+		Size = UDim2.new(1, 0, 0, 31),
+		BackgroundTransparency = 1,
+		Text = " " .. option.text,
+		TextSize = 17,
+		Font = Enum.Font.Gotham,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = parent.content
+	})
+	
+	local colorBoxOutline = library:Create("ImageLabel", {
+		Position = UDim2.new(1, -6, 0, 4),
+		Size = UDim2.new(-1, 10, 1, -10),
+		SizeConstraint = Enum.SizeConstraint.RelativeYY,
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = Color3.fromRGB(100, 100, 100),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = option.main
+	})
+	
+	option.visualize = library:Create("ImageLabel", {
+		Position = UDim2.new(0, 2, 0, 2),
+		Size = UDim2.new(1, -4, 1, -4),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = option.color,
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+		Parent = colorBoxOutline
+	})
+	
+	local inContact
+	option.main.InputBegan:connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			if not option.mainHolder then createColorPickerWindow(option) end
+			if library.activePopup then
+				library.activePopup:Close()
+			end
+			local position = option.main.AbsolutePosition
+			option.mainHolder.Position = UDim2.new(0, position.X - 5, 0, position.Y - 10)
+			option.open = true
+			option.mainHolder.Visible = true
+			library.activePopup = option
+			tweenService:Create(option.mainHolder, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = 0, Position = UDim2.new(0, position.X - 5, 0, position.Y - 4)}):Play()
+			tweenService:Create(option.mainHolder, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 0.1), {Position = UDim2.new(0, position.X - 5, 0, position.Y + 1)}):Play()
+			tweenService:Create(option.satval, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
+			for _,object in next, option.mainHolder:GetDescendants() do
+				if object:IsA"TextLabel" then
+					tweenService:Create(object, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+				elseif object:IsA"ImageLabel" then
+					tweenService:Create(object, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 0}):Play()
+				elseif object:IsA"Frame" then
+					tweenService:Create(object, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
 				end
 			end
 		end
-		for i,v in pairs(colorpickers) do
-			v.button.Position = udim2.pnew(1,-(v.button.Size.x)-7,0,v.ky,v.section)
-			v.color.Position = udim2.pnew(0.5,-(v.color.Size.x/2),0.5,-(v.color.Size.y/2),v.button)
-			v.borders.border1.Position = udim2.pnew(0,-3,0,-3,v.button)
-			v.borders.border2.Position = udim2.pnew(0,-2,0,-2,v.button)
-			v.borders.border3.Position = udim2.pnew(0,-1,0,-1,v.button)
-			v.label.Position = udim2.pnew(-5.3,0,0.5,-(v.label.TextBounds.Y/2)-1,v.button)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			inContact = true
+			if not option.open then
+				tweenService:Create(colorBoxOutline, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(140, 140, 140)}):Play()
+			end
 		end
-		library.movecolorpicker()
+	end)
+	
+	option.main.InputEnded:connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			inContact = true
+			if not option.open then
+				tweenService:Create(colorBoxOutline, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = Color3.fromRGB(100, 100, 100)}):Play()
+			end
+		end
+	end)
+	
+	function option:SetColor(newColor)
+		if self.mainHolder then
+			self:updateVisuals(newColor)
+		end
+		self.visualize.ImageColor3 = newColor
+		library.flags[self.flag] = newColor
+		self.color = newColor
+		self.callback(newColor)
 	end
-	if cursorenabled == false then
-		cursor.Visible = false
+	
+	function option:Close()
+		library.activePopup = nil
+		self.open = false
+		local position = self.main.AbsolutePosition
+		tweenService:Create(self.mainHolder, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 1, Position = UDim2.new(0, position.X - 5, 0, position.Y - 10)}):Play()
+		tweenService:Create(self.satval, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
+		for _,object in next, self.mainHolder:GetDescendants() do
+			if object:IsA"TextLabel" then
+				tweenService:Create(object, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 1}):Play()
+			elseif object:IsA"ImageLabel" then
+				tweenService:Create(object, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 1}):Play()
+			elseif object:IsA"Frame" then
+				tweenService:Create(object, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
+			end
+		end
+		delay(0.3, function()
+			if not self.open then
+				self.mainHolder.Visible = false
+			end 
+		end)
+	end
+end
+
+local function loadOptions(option, holder)
+	for _,newOption in next, option.options do
+		if newOption.type == "label" then
+			createLabel(newOption, option)
+		elseif newOption.type == "toggle" then
+			createToggle(newOption, option)
+		elseif newOption.type == "button" then
+			createButton(newOption, option)
+		elseif newOption.type == "list" then
+			createList(newOption, option, holder)
+		elseif newOption.type == "box" then
+			createBox(newOption, option)
+		elseif newOption.type == "bind" then
+			createBind(newOption, option)
+		elseif newOption.type == "slider" then
+			createSlider(newOption, option)
+		elseif newOption.type == "color" then
+			createColor(newOption, option, holder)
+		elseif newOption.type == "folder" then
+			newOption:init()
+		end
+	end
+end
+
+local function getFnctions(parent)
+	function parent:AddLabel(option)
+		option = typeof(option) == "table" and option or {}
+		option.text = tostring(option.text)
+		option.type = "label"
+		option.position = #self.options
+		table.insert(self.options, option)
+		
+		return option
+	end
+	
+	function parent:AddToggle(option)
+		option = typeof(option) == "table" and option or {}
+		option.text = tostring(option.text)
+		option.state = typeof(option.state) == "boolean" and option.state or false
+		option.callback = typeof(option.callback) == "function" and option.callback or function() end
+		option.type = "toggle"
+		option.position = #self.options
+		option.flag = option.flag or option.text
+		library.flags[option.flag] = option.state
+		table.insert(self.options, option)
+		
+		return option
+	end
+	
+	function parent:AddButton(option)
+		option = typeof(option) == "table" and option or {}
+		option.text = tostring(option.text)
+		option.callback = typeof(option.callback) == "function" and option.callback or function() end
+		option.type = "button"
+		option.position = #self.options
+		option.flag = option.flag or option.text
+		table.insert(self.options, option)
+		
+		return option
+	end
+	
+	function parent:AddBind(option)
+		option = typeof(option) == "table" and option or {}
+		option.text = tostring(option.text)
+		option.key = (option.key and option.key.Name) or option.key or "F"
+		option.hold = typeof(option.hold) == "boolean" and option.hold or false
+		option.callback = typeof(option.callback) == "function" and option.callback or function() end
+		option.type = "bind"
+		option.position = #self.options
+		option.flag = option.flag or option.text
+		library.flags[option.flag] = option.key
+		table.insert(self.options, option)
+		
+		return option
+	end
+	
+	function parent:AddSlider(option)
+		option = typeof(option) == "table" and option or {}
+		option.text = tostring(option.text)
+		option.min = typeof(option.min) == "number" and option.min or 0
+		option.max = typeof(option.max) == "number" and option.max or 0
+		option.dual = typeof(option.dual) == "boolean" and option.dual or false
+		option.value = math.clamp(typeof(option.value) == "number" and option.value or option.min, option.min, option.max)
+		option.value2 = typeof(option.value2) == "number" and option.value2 or option.max
+		option.callback = typeof(option.callback) == "function" and option.callback or function() end
+		option.float = typeof(option.value) == "number" and option.float or 1
+		option.type = "slider"
+		option.position = #self.options
+		option.flag = option.flag or option.text
+		library.flags[option.flag] = option.value
+		table.insert(self.options, option)
+		
+		return option
+	end
+	
+	function parent:AddList(option)
+		option = typeof(option) == "table" and option or {}
+		option.text = tostring(option.text)
+		option.values = typeof(option.values) == "table" and option.values or {}
+		option.value = tostring(option.value or option.values[1] or "")
+		option.callback = typeof(option.callback) == "function" and option.callback or function() end
+		option.open = false
+		option.type = "list"
+		option.position = #self.options
+		option.flag = option.flag or option.text
+		library.flags[option.flag] = option.value
+		table.insert(self.options, option)
+		
+		return option
+	end
+	
+	function parent:AddBox(option)
+		option = typeof(option) == "table" and option or {}
+		option.text = tostring(option.text)
+		option.value = tostring(option.value or "")
+		option.callback = typeof(option.callback) == "function" and option.callback or function() end
+		option.type = "box"
+		option.position = #self.options
+		option.flag = option.flag or option.text
+		library.flags[option.flag] = option.value
+		table.insert(self.options, option)
+		
+		return option
+	end
+	
+	function parent:AddColor(option)
+		option = typeof(option) == "table" and option or {}
+		option.text = tostring(option.text)
+		option.color = typeof(option.color) == "table" and Color3.new(tonumber(option.color[1]), tonumber(option.color[2]), tonumber(option.color[3])) or option.color or Color3.new(255, 255, 255)
+		option.callback = typeof(option.callback) == "function" and option.callback or function() end
+		option.open = false
+		option.type = "color"
+		option.position = #self.options
+		option.flag = option.flag or option.text
+		library.flags[option.flag] = option.color
+		table.insert(self.options, option)
+		
+		return option
+	end
+	
+	function parent:AddFolder(title)
+		local option = {}
+		option.title = tostring(title)
+		option.options = {}
+		option.open = false
+		option.type = "folder"
+		option.position = #self.options
+		table.insert(self.options, option)
+		
+		getFnctions(option)
+		
+		function option:init()
+			createOptionHolder(self.title, parent.content, self, true)
+			loadOptions(self, parent)
+		end
+		
+		return option
+	end
+end
+
+function library:CreateWindow(title)
+	local window = {title = tostring(title), options = {}, open = true, canInit = true, init = false, position = #self.windows}
+	getFnctions(window)
+	
+	table.insert(library.windows, window)
+	
+	return window
+end
+
+local UIToggle
+local UnlockMouse
+function library:Init()
+	
+	self.base = self.base or self:Create("ScreenGui")
+	if syn and syn.protect_gui then
+		syn.protect_gui(self.base)
+	elseif get_hidden_gui then
+		get_hidden_gui(self.base)
+	else
+		game:GetService"Players".LocalPlayer:Kick("Error: protect_gui function not found")
+		return
+	end
+	self.base.Parent = game:GetService"CoreGui"
+	
+	self.cursor = self.cursor or self:Create("Frame", {
+		ZIndex = 100,
+		AnchorPoint = Vector2.new(0, 0),
+		Size = UDim2.new(0, 5, 0, 5),
+		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+		Parent = self.base
+	})
+	
+	for _, window in next, self.windows do
+		if window.canInit and not window.init then
+			window.init = true
+			createOptionHolder(window.title, self.base, window)
+			loadOptions(window)
+		end
+	end
+end
+
+function library:Close()
+	self.open = not self.open
+	self.cursor.Visible = self.open
+	if self.activePopup then
+		self.activePopup:Close()
+	end
+	for _, window in next, self.windows do
+		if window.main then
+			window.main.Visible = self.open
+		end
+	end
+end
+
+inputService.InputBegan:connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		if library.activePopup then
+			if input.Position.X < library.activePopup.mainHolder.AbsolutePosition.X or input.Position.Y < library.activePopup.mainHolder.AbsolutePosition.Y then
+				library.activePopup:Close()
+			end
+		end
+		if library.activePopup then
+			if input.Position.X > library.activePopup.mainHolder.AbsolutePosition.X + library.activePopup.mainHolder.AbsoluteSize.X or input.Position.Y > library.activePopup.mainHolder.AbsolutePosition.Y + library.activePopup.mainHolder.AbsoluteSize.Y then
+				library.activePopup:Close()
+			end
+		end
+	end
+end)
+
+inputService.InputChanged:connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement and library.cursor then
+		local mouse = inputService:GetMouseLocation() + Vector2.new(0, -36)
+		library.cursor.Position = UDim2.new(0, mouse.X - 2, 0, mouse.Y - 2)
+	end
+	if input == dragInput and dragging then
+		update(input)
 	end
 end)
 
